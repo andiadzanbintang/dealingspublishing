@@ -6,7 +6,7 @@ export const mockSettings = {
     'We publish cutting-edge research across multiple disciplines, connecting scholars worldwide and driving innovation forward.',
   heroImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1920&q=80',
   aboutUsShort:
-    'Founded in 2010, ResearchHub has been at the forefront of academic publishing, dedicated to disseminating high-quality research that addresses the most pressing challenges of our time.',
+    'Founded in 2023, Dealings Publishing has been at the forefront of academic publishing, dedicated to disseminating high-quality research that addresses the most pressing challenges of our time.',
   mission:
     'To accelerate the pace of scientific discovery by providing an open, rigorous, and accessible platform for researchers worldwide.',
   vision:

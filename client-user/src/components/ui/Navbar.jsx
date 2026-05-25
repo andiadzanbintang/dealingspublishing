@@ -53,8 +53,15 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* ═══ Logo ═══ */}
             <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-              <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center">
+              {/* <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-lg">D</span>
+              </div> */}
+              <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-white/90 shadow-sm">
+                <img
+                  src="/dealingsPublishingLogo.svg"
+                  alt="Dealings Publishing"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span
                 className={cn(
@@ -64,7 +71,7 @@ export default function Navbar() {
                     : 'text-white'
                 )}
               >
-                Design Publishing
+                Dealings Publishing
               </span>
             </Link>
 

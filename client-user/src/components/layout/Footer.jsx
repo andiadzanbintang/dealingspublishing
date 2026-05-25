@@ -171,7 +171,7 @@ export default function Footer() {
                 <span className="text-white font-bold text-lg">D</span>
               </div>
               <span className="text-xl font-bold tracking-tight">
-                Design Publishing
+                Dealings Publishing
               </span>
             </Link>
 
@@ -301,7 +301,7 @@ export default function Footer() {
       <div className="border-t border-neutral-800">
         <div className="container-custom py-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-neutral-500">
-            © {new Date().getFullYear()} Design Publishing. All rights reserved.
+            © {new Date().getFullYear()} Dealings Publishing. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link

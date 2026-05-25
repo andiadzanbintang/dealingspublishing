@@ -8,7 +8,7 @@ import { siteAPI } from '@/services/api'
 
 const defaultSettings = {
   aboutUsShort:
-    'Design Publishing is dedicated to advancing scientific knowledge through accessible, high-quality academic publishing.',
+    'Dealings Publishing is dedicated to advancing scientific knowledge through accessible, high-quality academic publishing.',
   mission:
     'To democratize access to research and provide a platform where knowledge knows no boundaries.',
   vision:

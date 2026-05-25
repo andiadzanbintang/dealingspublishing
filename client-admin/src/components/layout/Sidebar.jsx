@@ -41,11 +41,11 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-neutral-100 flex-shrink-0">
         <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm">R</span>
+          <span className="text-white font-bold text-sm">D</span>
         </div>
         {!collapsed && (
           <span className="ml-3 text-lg font-bold text-neutral-900 truncate">
-            ResearchHub
+            Dealings Publishing
           </span>
         )}
       </div>
