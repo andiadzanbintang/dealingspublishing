@@ -1,0 +1,138 @@
+// src/pages/TermsPage.jsx
+import { Helmet } from 'react-helmet-async'
+import { Link } from 'react-router-dom'
+import { ArrowLeft, FileText } from 'lucide-react'
+import PageHeader from '@/components/ui/PageHeader'
+import Button from '@/components/ui/Button'
+
+export default function TermsPage() {
+  return (
+    <>
+      <Helmet>
+        <title>Terms of Service — Design Publishing</title>
+        <meta
+          name="description"
+          content="Read the Design Publishing terms of service for using our website and content."
+        />
+      </Helmet>
+
+      <PageHeader
+        title="Terms of Service"
+        subtitle="Please read these terms carefully before using our website."
+        breadcrumbs={[{ label: 'Terms of Service' }]}
+        backgroundImage="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1920&q=80"
+      />
+
+      <section className="section-padding bg-white">
+        <div className="container-custom max-w-4xl">
+          <div className="mb-10 flex items-start gap-4 p-6 bg-neutral-50 border border-neutral-200 rounded-2xl">
+            <div className="w-12 h-12 bg-neutral-200 rounded-xl flex items-center justify-center flex-shrink-0">
+              <FileText className="w-6 h-6 text-neutral-700" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-900">
+                Website terms
+              </h2>
+              <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                These terms govern your use of the Design Publishing website,
+                including access to publications, news, events, and related
+                services.
+              </p>
+            </div>
+          </div>
+
+          <div className="prose prose-neutral prose-lg max-w-none">
+            <p className="text-sm text-neutral-500">
+              Last updated: {new Date().getFullYear()}
+            </p>
+
+            <h2>1. Acceptance of Terms</h2>
+            <p>
+              By accessing or using this website, you agree to be bound by these
+              Terms of Service. If you do not agree with these terms, please do
+              not use the website.
+            </p>
+
+            <h2>2. Use of Website</h2>
+            <p>
+              You may use this website for lawful purposes only. You agree not
+              to misuse the website, interfere with its operation, attempt
+              unauthorized access, or use the website in a way that may harm
+              Design Publishing or other users.
+            </p>
+
+            <h2>3. Academic and Informational Content</h2>
+            <p>
+              Content published on this website is provided for academic,
+              informational, and research-related purposes. While we aim to
+              provide accurate and reliable information, we do not guarantee that
+              all content is complete, current, or error-free.
+            </p>
+
+            <h2>4. Intellectual Property</h2>
+            <p>
+              Unless otherwise stated, website design, text, graphics, logos,
+              and other materials are owned by or licensed to Design Publishing.
+              You may not reproduce, distribute, modify, or use such materials
+              without appropriate permission, except as allowed by applicable
+              law.
+            </p>
+
+            <h2>5. External Links</h2>
+            <p>
+              This website may contain links to third-party websites or external
+              resources. These links are provided for convenience only. Design
+              Publishing is not responsible for the content, policies, or
+              practices of third-party websites.
+            </p>
+
+            <h2>6. User Submissions</h2>
+            <p>
+              If you submit information through forms, subscription features, or
+              other communication channels, you are responsible for ensuring that
+              the information is accurate and does not violate any law or third
+              party rights.
+            </p>
+
+            <h2>7. Newsletter Subscription</h2>
+            <p>
+              Users may subscribe to receive updates from Design Publishing.
+              Subscription emails may include publication updates, event
+              announcements, and related information. You may unsubscribe using
+              the link provided in our emails.
+            </p>
+
+            <h2>8. Limitation of Liability</h2>
+            <p>
+              To the fullest extent permitted by law, Design Publishing shall not
+              be liable for any direct, indirect, incidental, consequential, or
+              special damages arising from your use of, or inability to use, this
+              website.
+            </p>
+
+            <h2>9. Changes to These Terms</h2>
+            <p>
+              We may update these Terms of Service from time to time. Continued
+              use of the website after changes are posted means you accept the
+              revised terms.
+            </p>
+
+            <h2>10. Contact Us</h2>
+            <p>
+              If you have questions about these Terms of Service, please contact
+              us through the contact information provided on this website.
+            </p>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-neutral-200">
+            <Link to="/">
+              <Button variant="ghost" icon={ArrowLeft} iconPosition="left">
+                Back to Home
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+    </>
+  )
+}
