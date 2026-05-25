@@ -17,15 +17,34 @@ const app = express()
 // ═══ GLOBAL MIDDLEWARE ═══
 
 // CORS
-app.use(
-  cors({
-    origin: [
-      process.env.CLIENT_USER_URL || 'http://localhost:5173',
-      process.env.CLIENT_ADMIN_URL || 'http://localhost:5174',
-    ],
-    credentials: true,
-  })
-)
+const allowedOrigins = [
+  process.env.CLIENT_USER_URL,
+  process.env.CLIENT_ADMIN_URL,
+  'https://www.dealingspublishing.com',
+  'https://dealingspublishing.com',
+  'http://localhost:5173',
+  'http://localhost:5174',
+].filter(Boolean)
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow curl, Postman, server-to-server, health check without Origin header
+    if (!origin) {
+      return callback(null, true)
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error(`Not allowed by CORS: ${origin}`))
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}
+
+app.use(cors(corsOptions))
 
 // Security
 app.use(helmet())
