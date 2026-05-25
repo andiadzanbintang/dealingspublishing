@@ -13,6 +13,7 @@ import { globalLimiter } from './middleware/rateLimiter.js'
 import { AppError } from './utils/AppError.js'
 
 const app = express()
+app.set('trust proxy', 1)
 
 // ═══ GLOBAL MIDDLEWARE ═══
 
