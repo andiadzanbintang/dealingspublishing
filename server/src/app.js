@@ -17,32 +17,81 @@ app.set('trust proxy', 1)
 
 // ═══ GLOBAL MIDDLEWARE ═══
 
+// // CORS
+// const allowedOrigins = [
+//   process.env.CLIENT_USER_URL,
+//   process.env.CLIENT_ADMIN_URL,
+//   'https://www.dealingspublishing.com',
+//   'https://dealingspublishing.com',
+//   'http://localhost:5173',
+//   'http://localhost:5174',
+// ].filter(Boolean)
+
+// const corsOptions = {
+//   origin: (origin, callback) => {
+//     // Allow curl, Postman, server-to-server, health check without Origin header
+//     if (!origin) {
+//       return callback(null, true)
+//     }
+
+//     if (allowedOrigins.includes(origin)) {
+//       return callback(null, true)
+//     }
+
+//     return callback(new Error(`Not allowed by CORS: ${origin}`))
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// }
+
+// app.use(cors(corsOptions))
+
 // CORS
-const allowedOrigins = [
-  process.env.CLIENT_USER_URL,
-  process.env.CLIENT_ADMIN_URL,
-  'https://www.dealingspublishing.com',
-  'https://dealingspublishing.com',
-  'http://localhost:5173',
-  'http://localhost:5174',
-].filter(Boolean)
+const normalizeOrigin = (value) => {
+  if (!value) return ''
+  return value.trim().replace(/\/$/, '')
+}
+
+const isAllowedOrigin = (origin) => {
+  const normalizedOrigin = normalizeOrigin(origin)
+
+  const allowedStaticOrigins = [
+    'https://dealingspublishing.com',
+    'https://www.dealingspublishing.com',
+    'https://admin.dealingspublishing.com',
+    'http://localhost:5173',
+    'http://localhost:5174',
+  ]
+
+  if (allowedStaticOrigins.includes(normalizedOrigin)) {
+    return true
+  }
+
+  // Allow future subdomains like api/admin/etc if needed
+  return /^https:\/\/[a-z0-9-]+\.dealingspublishing\.com$/i.test(
+    normalizedOrigin
+  )
+}
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow curl, Postman, server-to-server, health check without Origin header
+    // Allow curl, Postman, server-to-server request
     if (!origin) {
       return callback(null, true)
     }
 
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true)
     }
 
-    return callback(new Error(`Not allowed by CORS: ${origin}`))
+    console.error('CORS blocked origin:', origin)
+    return callback(null, false)
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
 }
 
 app.use(cors(corsOptions))
