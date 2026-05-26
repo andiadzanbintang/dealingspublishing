@@ -13,6 +13,7 @@ import {
 import DataTable from '@/components/ui/DataTable'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { bookAPI } from '@/services/api'
+import { formatBookPrice } from '@/lib/utils'
 
 export default function BooksManagePage() {
   const navigate = useNavigate()
@@ -175,6 +176,15 @@ export default function BooksManagePage() {
       cell: ({ row }) => (
         <span className="text-sm text-neutral-500">
           {row.original.publishedBy || '—'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'price',
+      header: 'Price',
+      cell: ({ row }) => (
+        <span className="text-sm font-medium text-neutral-700">
+          {formatBookPrice(row.original.price, row.original.priceCurrency) || '—'}
         </span>
       ),
     },

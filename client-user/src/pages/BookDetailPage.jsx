@@ -19,12 +19,13 @@ import {
   Tag,
   Home,
   ChevronRight,
+  Banknote,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import AnimatedSection from '@/components/ui/AnimatedSection'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatBookPrice } from '@/lib/utils'
 import { bookAPI } from '@/services/api'
 
 export default function BookDetailPage() {
@@ -59,6 +60,7 @@ export default function BookDetailPage() {
 
   const writers = book?.writers || []
   const tags = book?.tags || []
+  const formattedPrice = formatBookPrice(book?.price, book?.priceCurrency)
 
   const hasAdditionalInformation = Boolean(
     book?.content && book.content.trim() && book.content.trim() !== '<p></p>'
@@ -286,6 +288,13 @@ export default function BookDetailPage() {
                   <Hash className="w-4 h-4 text-neutral-500" />
                   <span>ISBN: {book.isbn || '—'}</span>
                 </div>
+
+                {formattedPrice && (
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-neutral-500" />
+                    <span>{formattedPrice}</span>
+                  </div>
+                )}
               </motion.div>
 
               <motion.div
@@ -438,6 +447,13 @@ export default function BookDetailPage() {
                         value={book.publishedBy || '—'}
                       />
                       <MetaItem icon={Hash} label="ISBN" value={book.isbn || '—'} />
+                      {formattedPrice && (
+                        <MetaItem
+                          icon={Banknote}
+                          label="Price"
+                          value={formattedPrice}
+                        />
+                      )}
                       <MetaItem
                         icon={Calendar}
                         label="Publication"

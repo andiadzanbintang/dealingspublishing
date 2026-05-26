@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination, Autoplay } from 'swiper/modules'
-import { ArrowLeft, ArrowRight, BookOpen, UserRound, Building2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, UserRound, Building2, Banknote } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
-import { truncateText } from '@/lib/utils'
+import { truncateText, formatBookPrice } from '@/lib/utils'
 import { bookAPI } from '@/services/api'
 
 import 'swiper/css'
@@ -89,6 +89,16 @@ function FeaturedBookCard({ book, index = 0 }) {
                 {book.publishedBy || 'Dealings Publishing'}
               </span>
             </div>
+
+            {formatBookPrice(book.price, book.priceCurrency) && (
+              <div className="flex items-center gap-1.5 text-xs text-primary-600 font-medium">
+                <Banknote className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">
+                  {formatBookPrice(book.price, book.priceCurrency)}
+                </span>
+              </div>
+            )}
+            
           </div>
         </div>
       </Link>

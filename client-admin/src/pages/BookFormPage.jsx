@@ -34,6 +34,8 @@ export default function BookFormPage() {
       editor: '',
       publishedBy: 'Dealings Publishing',
       isbn: '',
+      price: '',
+      priceCurrency: 'IDR',
       description: '',
       publicationYear: '',
       publicationDate: '',
@@ -80,6 +82,8 @@ export default function BookFormPage() {
         setValue('editor', book.editor || '')
         setValue('publishedBy', book.publishedBy || '')
         setValue('isbn', book.isbn || '')
+        setValue('price', book.price ?? '')
+        setValue('priceCurrency', book.priceCurrency || 'IDR')
         setValue('description', book.description || '')
         setValue('publicationYear', book.publicationYear || '')
         setValue(
@@ -158,6 +162,13 @@ export default function BookFormPage() {
         editor: data.editor?.trim(),
         publishedBy: data.publishedBy?.trim(),
         isbn: data.isbn?.trim(),
+
+        price:
+          data.price !== '' && data.price !== null && data.price !== undefined
+            ? Number(data.price)
+            : null,
+
+        priceCurrency: data.priceCurrency?.trim().toUpperCase() || 'IDR',
 
         description: data.description || '',
         content,
@@ -391,6 +402,45 @@ export default function BookFormPage() {
                     placeholder="Urban Planning"
                     className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-[1fr_140px] gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    {...register('price', {
+                      min: {
+                        value: 0,
+                        message: 'Price cannot be negative',
+                      },
+                    })}
+                    placeholder="150000"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  {errors.price && (
+                    <p className="mt-1 text-xs text-danger-500">
+                      {errors.price.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    Currency
+                  </label>
+                  <select
+                    {...register('priceCurrency')}
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="IDR">IDR</option>
+                    <option value="USD">USD</option>
+                  </select>
                 </div>
               </div>
 

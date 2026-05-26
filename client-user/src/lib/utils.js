@@ -28,3 +28,18 @@ export function slugify(text){
     .replace(/[^\w ]+/g, '')
     .replace(/ +/g, '-') 
 }
+
+export const formatBookPrice = (price, currency = 'IDR') => {
+  if (price === null || price === undefined || price === '') return ''
+
+  const numericPrice = Number(price)
+
+  if (Number.isNaN(numericPrice)) return ''
+  if (numericPrice === 0) return 'Free'
+
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(numericPrice)
+}

@@ -12,6 +12,19 @@ const bookSchema = new mongoose.Schema(
     editor: { type: String, required: true, trim: true },
     publishedBy: { type: String, required: true, trim: true },
 
+    price: {
+    type: Number,
+    default: null,
+    min: 0,
+    },
+
+  priceCurrency: {
+    type: String,
+    default: 'IDR',
+    uppercase: true,
+    trim: true,
+    },
+
     isbn: { type: String, required: true, trim: true },
 
     description: { type: String, required: true },

@@ -1,9 +1,9 @@
 // src/components/ui/BookCard.jsx
 import { Link } from 'react-router-dom'
-import { BookOpen, UserRound, Building2, Calendar } from 'lucide-react'
+import { BookOpen, UserRound, Building2, Calendar, Banknote } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Badge from '@/components/ui/Badge'
-import { truncateText } from '@/lib/utils'
+import { truncateText, formatBookPrice } from '@/lib/utils'
 
 export default function BookCard({ book, index = 0 }) {
   return (
@@ -70,6 +70,13 @@ export default function BookCard({ book, index = 0 }) {
                     {book.publishedBy || 'Unknown publisher'}
                   </span>
                 </div>
+
+                {formatBookPrice(book.price, book.priceCurrency) && (
+                  <div className="flex items-center gap-1.5 text-xs text-primary-600 font-medium">
+                    <Banknote className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{formatBookPrice(book.price, book.priceCurrency)}</span>
+                  </div>
+                )}
 
                 {book.publicationYear && (
                   <div className="flex items-center gap-1.5 text-xs text-neutral-400">

@@ -39,6 +39,21 @@ export const createBookSchema = z.object({
 
   isFeatured: z.boolean().optional().default(false),
   isPublished: z.boolean().optional().default(false),
+
+  price: z.preprocess(
+    (value) => {
+      if (value === '' || value === null || value === undefined) return null
+      return Number(value)
+    },
+    z.number().min(0).nullable().optional()
+  ),
+
+  priceCurrency: z
+    .string()
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .default('IDR')
+    .optional(),
 })
 
 export const updateBookSchema = createBookSchema.partial()
