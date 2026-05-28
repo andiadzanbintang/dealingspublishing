@@ -15,6 +15,8 @@ import {
   Eye,
   ArrowLeft,
   Tag,
+  Home,
+  ChevronRight,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Badge from '@/components/ui/Badge'
@@ -216,7 +218,7 @@ export default function JournalDetailPage() {
       </Helmet>
 
       {/* ═══ Hero ═══ */}
-      <section className="relative pt-32 pb-12 md:pt-40 md:pb-16 bg-neutral-900 overflow-hidden">
+      <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 bg-neutral-900 overflow-hidden">
         <div className="absolute inset-0">
           {journal.coverImage && (
             <img
@@ -229,30 +231,64 @@ export default function JournalDetailPage() {
         </div>
 
         <div className="relative container-custom">
+          {/* Breadcrumbs */}
           <motion.nav
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-1.5 text-sm text-neutral-500 mb-8 flex-wrap"
+            transition={{ duration: 0.4 }}
+            className="flex items-center gap-1.5 text-sm text-neutral-500 mb-10 flex-wrap"
           >
-            <Link to="/" className="hover:text-white transition-colors">
+            <Link
+              to="/"
+              className="hover:text-white transition-colors flex items-center gap-1"
+            >
+              <Home className="w-3.5 h-3.5" />
               Home
             </Link>
-            <span className="text-neutral-600">/</span>
+
+            <ChevronRight className="w-3.5 h-3.5 text-neutral-600" />
+
             <Link to="/journals" className="hover:text-white transition-colors">
               Journals
             </Link>
-            <span className="text-neutral-600">/</span>
+
+            <ChevronRight className="w-3.5 h-3.5 text-neutral-600" />
+
             <span className="text-neutral-300 line-clamp-1">
               {journal.title}
             </span>
           </motion.nav>
 
-          <div className="grid lg:grid-cols-3 gap-12 items-start">
-            <div className="lg:col-span-2">
+          <div className="grid lg:grid-cols-[280px_1fr] gap-10 lg:gap-14 items-start">
+            {/* Cover */}
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mx-auto lg:mx-0"
+            >
+              <div className="w-56 md:w-64 aspect-[2/3] rounded-2xl overflow-hidden bg-neutral-800 shadow-2xl border border-white/10">
+                {journal.coverImage ? (
+                  <img
+                    src={journal.coverImage}
+                    alt={journal.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                    <BookOpen className="w-12 h-12" />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Info */}
+            <div>
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
+                className="flex flex-wrap gap-2"
               >
                 {journal.topic && (
                   <Badge color={journal.topic?.color} size="md">
@@ -262,44 +298,51 @@ export default function JournalDetailPage() {
               </motion.div>
 
               <motion.h1
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="mt-4 text-3xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight"
+                transition={{ delay: 0.18 }}
+                className="mt-5 text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight"
               >
                 {journal.title}
               </motion.h1>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="mt-6 flex flex-wrap items-center gap-4 text-sm text-neutral-400"
+                className="mt-8 grid sm:grid-cols-2 gap-4 text-sm text-neutral-300"
               >
                 {authors.length > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <Users className="w-4 h-4" />
-                    {authors.join(', ')}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-neutral-500" />
+                    <span>{authors.join(', ')}</span>
+                  </div>
                 )}
 
                 {journal.publicationDate && (
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4" />
-                    {formatDate(journal.publicationDate)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-neutral-500" />
+                    <span>{formatDate(journal.publicationDate)}</span>
+                  </div>
                 )}
 
-                <span className="flex items-center gap-1.5">
-                  <Eye className="w-4 h-4" />
-                  {journal.viewCount?.toLocaleString() || 0} views
-                </span>
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-neutral-500" />
+                  <span>{journal.viewCount?.toLocaleString() || 0} views</span>
+                </div>
+
+                {journal.doi && (
+                  <div className="flex items-center gap-2">
+                    <Hash className="w-4 h-4 text-neutral-500" />
+                    <span className="break-all">DOI: {journal.doi}</span>
+                  </div>
+                )}
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.36 }}
                 className="mt-8 flex flex-wrap gap-3"
               >
                 {journal.pdfUrl && (
@@ -338,21 +381,6 @@ export default function JournalDetailPage() {
                 </Button>
               </motion.div>
             </div>
-
-            {journal.coverImage && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-                className="hidden lg:block"
-              >
-                <img
-                  src={journal.coverImage}
-                  alt={journal.title}
-                  className="w-full h-80 object-cover rounded-2xl shadow-2xl"
-                />
-              </motion.div>
-            )}
           </div>
         </div>
       </section>
@@ -553,7 +581,7 @@ export default function JournalDetailPage() {
                           <Users className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
                           <div>
                             <dt className="text-xs text-neutral-500 uppercase tracking-wider">
-                              Chief in Editors
+                              Editor in Chief
                             </dt>
                             <dd className="mt-0.5 text-sm font-medium text-neutral-800">
                               {authors.map((author) => (

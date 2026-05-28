@@ -167,7 +167,7 @@ export default function BookDetailPage() {
         <title>{book.title} — Dealings Publishing</title>
         <meta name="description" content={book.description} />
       </Helmet>
-
+ 
       {/* Hero */}
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 bg-neutral-900 overflow-hidden">
         <div className="absolute inset-0">
