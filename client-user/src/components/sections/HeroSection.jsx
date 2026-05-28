@@ -16,6 +16,7 @@ const defaultHero = {
 
 export default function HeroSection() {
   const [hero, setHero] = useState(defaultHero)
+  const [showStats, setShowStats] = useState(false)
 
   const renderStyledTitle = (title) => {
   const words = title.split(' ')
@@ -149,7 +150,8 @@ export default function HeroSection() {
           </motion.div>
 
           {/* Stats */}
-          <motion.div
+          {showStats && (
+            <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.9 }}
@@ -168,6 +170,7 @@ export default function HeroSection() {
               </div>
             ))}
           </motion.div>
+          )}
         </div>
       </div>
 

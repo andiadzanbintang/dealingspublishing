@@ -366,7 +366,7 @@ export default function JournalDetailPage() {
                 <AnimatedSection>
                   <div className="mb-10">
                     <h2 className="text-2xl font-bold text-neutral-900 mb-4">
-                      Abstract
+                      About the Journal
                     </h2>
                     <p className="text-neutral-600 leading-relaxed text-lg">
                       {journal.abstract}
@@ -415,7 +415,8 @@ export default function JournalDetailPage() {
                 </AnimatedSection>
               )}
 
-              <AnimatedSection delay={0.2}>
+              {/* Copy Site */}
+              {/* <AnimatedSection delay={0.2}>
                 <div className="p-6 bg-neutral-50 rounded-2xl border border-neutral-200">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-semibold text-neutral-900">
@@ -433,7 +434,7 @@ export default function JournalDetailPage() {
                     {citationAPA}
                   </p>
                 </div>
-              </AnimatedSection>
+              </AnimatedSection> */}
 
               <AnimatedSection delay={0.25}>
                 <div className="mt-10 p-6 bg-gradient-to-r from-primary-50 to-primary-100/50 rounded-2xl border border-primary-200">
@@ -552,7 +553,7 @@ export default function JournalDetailPage() {
                           <Users className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
                           <div>
                             <dt className="text-xs text-neutral-500 uppercase tracking-wider">
-                              Authors
+                              Chief in Editors
                             </dt>
                             <dd className="mt-0.5 text-sm font-medium text-neutral-800">
                               {authors.map((author) => (

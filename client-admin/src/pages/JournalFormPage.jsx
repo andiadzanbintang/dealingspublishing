@@ -324,7 +324,7 @@ export default function JournalFormPage() {
               {/* Abstract */}
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  Abstract <span className="text-danger-500">*</span>
+                  About the Journal <span className="text-danger-500">*</span>
                 </label>
                 <textarea
                   {...register('abstract', {
