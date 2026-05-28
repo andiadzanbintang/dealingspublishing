@@ -81,7 +81,7 @@ export default function AboutPreviewSection() {
 
               {/* Floating stat card */}
               <div className="absolute -bottom-4 -left-4 md:bottom-8 md:-left-8 bg-white rounded-2xl shadow-xl p-5 border border-neutral-100">
-                <div className="text-3xl font-bold text-primary-600">15+</div>
+                <div className="text-3xl font-bold text-primary-600">2+</div>
                 <div className="text-sm text-neutral-500 mt-0.5">
                   Years of Excellence
                 </div>

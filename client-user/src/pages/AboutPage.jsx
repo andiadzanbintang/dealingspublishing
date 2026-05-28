@@ -17,10 +17,10 @@ import SubscribeSection from '@/components/sections/SubscribeSection'
 import { siteAPI } from '@/services/api'
 
 const stats = [
-  { icon: BookOpen, value: '500+', label: 'Published Journals' },
-  { icon: Users, value: '120+', label: 'Global Researchers' },
-  { icon: Globe, value: '60+', label: 'Countries Reached' },
-  { icon: Award, value: '15+', label: 'Years of Excellence' },
+  { icon: BookOpen, value: '41+', label: 'Published Articles' },
+  { icon: Users, value: '51+', label: 'Research Authors' },
+  { icon: Globe, value: '5+', label: 'Contributing Countries' },
+  { icon: Award, value: '75+', label: 'Google Citations' },
 ]
 
 const values = [
@@ -52,40 +52,40 @@ const values = [
 
 const timeline = [
   {
-    year: '2010',
-    title: 'Founded',
+    year: '2024',
+    title: 'Officially Established',
     description:
-      'ResearchHub was established with a mission to advance open science.',
+      'Dealings Foundation Institute (Dealings Publishing) was legally registered under the Ministry of Law and Human Rights of the Republic of Indonesia.',
   },
   {
-    year: '2013',
-    title: 'First 100 Journals',
+    year: '2024',
+    title: 'Launching Academic Publishing Platform',
     description:
-      'Reached a milestone of 100 published peer-reviewed journals across 5 disciplines.',
-  },
-  {
-    year: '2016',
-    title: 'Global Expansion',
-    description:
-      'Expanded operations to serve researchers in over 30 countries.',
-  },
-  {
-    year: '2019',
-    title: 'Open Access Initiative',
-    description:
-      'Launched our open access program, making 200+ journals freely available.',
-  },
-  {
-    year: '2022',
-    title: 'AI Integration',
-    description:
-      'Introduced AI-powered tools to help researchers discover and understand publications.',
+      'Started publishing interdisciplinary academic journals and supporting open-access scientific communication.',
   },
   {
     year: '2025',
-    title: 'The Future',
+    title: 'International Research Collaboration',
     description:
-      'Continuing to push boundaries with 500+ journals and a growing global community.',
+      'Expanded collaboration with researchers, educators, and institutions from multiple countries across diverse disciplines.',
+  },
+  {
+    year: '2025',
+    title: 'Crossref DOI Registration',
+    description:
+      'Registered publications with Crossref DOI to ensure global discoverability and academic citation standards.',
+  },
+  {
+    year: '2026',
+    title: 'Growing Global Impact',
+    description:
+      'Published peer-reviewed research involving international authors and interdisciplinary studies in government, resilience, and sustainability.',
+  },
+  {
+    year: 'Future',
+    title: 'Advancing Open Knowledge',
+    description:
+      'Continuing to build an inclusive and globally recognized platform for impactful research and scientific innovation.',
   },
 ]
 
