@@ -89,6 +89,45 @@ const timeline = [
   },
 ]
 
+const teamMembers = [
+  {
+    name: 'Dr Abdillah',
+    role: 'Founder & Publishing Director',
+    email: 'abdillah@dealingspublishing.com',
+    image:
+      '/abdillah.jpg',
+    description:
+      "Leading the company's strategic direction, development of academic and professional networks, and oversight of the overall publishing process and development of scientific publications.",
+  },
+  {
+    name: 'Prof. Nina Yusliani',
+    role: 'Senior Publishing Advisor',
+    email: 'ninayuslaini@soc.uir.ac.id',
+    image:
+      '/nina.png',
+    description:
+      'Providing strategic academic and publishing guidance to strengthen editorial quality, publication management, and institutional collaboration.',
+  },
+  {
+    name: 'dr Suci Triana Putri',
+    role: 'Finance & Administration Manager',
+    email: 'sucitrianaputri@gmail.com',
+    image:
+      '/suci.jpg',
+    description:
+      'Responsible for managing company finances, operational administration, document archiving, budget management, and ensuring that administrative and financial governance runs effectively and professionally.',
+  },
+  {
+    name: 'Dr Siti Sofiaturrohmah',
+    role: 'Creative & Publication Officer',
+    email: 'siti19044@dealingspublishing.com',
+    image:
+      '/siti.jpg',
+    description:
+      'Manage publication design, book and journal layout, visual branding, publication media, and creative content development to support company identity and promotion.',
+  },
+]
+
 const defaultSettings = {
   heroTitle: 'Our Story',
   heroSubtitle:
@@ -325,6 +364,70 @@ export default function AboutPage() {
                   <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
                     {value.description}
                   </p>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Our Team ═══ */}
+      <section className="section-padding bg-neutral-50">
+        <div className="container-custom">
+          <AnimatedSection>
+            <div className="text-center mb-16">
+              <span className="text-sm font-semibold text-primary-600 uppercase tracking-wider">
+                Meet The Team
+              </span>
+
+              <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-neutral-900">
+                The People Behind
+                <br />
+                Dealings Publishing
+              </h2>
+
+              <p className="mt-6 text-neutral-500 max-w-2xl mx-auto">
+                Our publishing team is dedicated to advancing academic excellence,
+                open-access knowledge, and impactful scientific communication through
+                collaboration and innovation.
+              </p>
+            </div>
+          </AnimatedSection>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {teamMembers.map((member, index) => (
+              <AnimatedSection key={index} delay={index * 0.1}>
+                <div className="bg-white rounded-3xl border border-neutral-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+                  <div className="grid sm:grid-cols-[220px_1fr]">
+                    <div className="relative h-[260px] sm:h-full">
+                      <img
+                        src={member.image}
+                        alt={member.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <div className="p-8">
+                      <h3 className="text-2xl font-bold text-neutral-900">
+                        {member.name}
+                      </h3>
+
+                      <p className="mt-2 text-primary-600 font-medium">
+                        {member.role}
+                      </p>
+
+                      <a
+                        href={`mailto:${member.email}`}
+                        className="inline-block mt-3 text-sm text-neutral-500 hover:text-primary-600 transition-colors"
+                      >
+                        {member.email}
+                      </a>
+
+                      <p className="mt-6 text-neutral-600 leading-relaxed">
+                        {member.description}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </AnimatedSection>
             ))}
