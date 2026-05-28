@@ -100,7 +100,7 @@ const teamMembers = [
       "Leading the company's strategic direction, development of academic and professional networks, and oversight of the overall publishing process and development of scientific publications.",
   },
   {
-    name: 'Prof. Nina Yusliani',
+    name: 'Prof. Nina Yuslaini',
     role: 'Senior Publishing Advisor',
     email: 'ninayuslaini@soc.uir.ac.id',
     image:
