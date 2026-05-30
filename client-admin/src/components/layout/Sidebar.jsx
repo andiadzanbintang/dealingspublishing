@@ -12,6 +12,7 @@ import {
   Bot,
   ChevronLeft,
   ChevronRight,
+  Handshake,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -19,7 +20,8 @@ import { useState } from 'react'
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Journals', path: '/journals', icon: BookOpen },
-    { label: 'Books', path: '/books', icon: BookText },
+  { label: 'Books', path: '/books', icon: BookText },
+  { label: 'Partnerships', path: '/partnerships', icon: Handshake },
   { label: 'Topics', path: '/topics', icon: Tags },
   { label: 'News', path: '/news', icon: Newspaper },
   { label: 'Events', path: '/events', icon: CalendarDays },

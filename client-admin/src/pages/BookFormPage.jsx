@@ -39,7 +39,7 @@ export default function BookFormPage() {
       description: '',
       publicationYear: '',
       publicationDate: '',
-      language: '',
+      bookLanguage: '',
       edition: '',
       pages: '',
       category: '',
@@ -63,7 +63,7 @@ export default function BookFormPage() {
     const fetchBook = async () => {
       if (!isEdit || !id) return
 
-      setPageLoading(true)
+      setPageLoading(true) 
       setError('')
 
       try {
@@ -92,7 +92,7 @@ export default function BookFormPage() {
             ? new Date(book.publicationDate).toISOString().split('T')[0]
             : ''
         )
-        setValue('language', book.language || '')
+        setValue('bookLanguage', book.bookLanguage || '')
         setValue('edition', book.edition || '')
         setValue('pages', book.pages || '')
         setValue('category', book.category || '')
@@ -124,7 +124,7 @@ export default function BookFormPage() {
     // Existing image URL from backend
     if (typeof coverImage === 'string') {
       return coverImage
-    }
+    } 
 
     // New File object from ImageUpload
     if (coverImage instanceof File) {
@@ -179,7 +179,7 @@ export default function BookFormPage() {
           : null,
         publicationDate: data.publicationDate || null,
 
-        language: data.language || '',
+        bookLanguage: data.bookLanguage || '',
         edition: data.edition || '',
         pages: data.pages || '',
         category: data.category || '',
@@ -527,7 +527,7 @@ export default function BookFormPage() {
                     Language
                   </label>
                   <input
-                    {...register('language')}
+                    {...register('bookLanguage')}
                     placeholder="English"
                     className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />

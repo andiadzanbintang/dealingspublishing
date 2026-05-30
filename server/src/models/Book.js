@@ -35,7 +35,7 @@ const bookSchema = new mongoose.Schema(
     publicationYear: { type: Number, default: null },
     publicationDate: { type: Date, default: null },
 
-    language: { type: String, default: '' },
+    bookLanguage: { type: String, default: '' }, 
     edition: { type: String, default: '' },
     pages: { type: String, default: '' },
     category: { type: String, default: '' },

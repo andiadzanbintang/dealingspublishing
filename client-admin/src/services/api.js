@@ -172,7 +172,7 @@ export const uploadAPI = {
     api.post('/upload/image', formData, {
       params: { folder },
       headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    }), 
 
   uploadMultiple: (formData, folder = 'researchhub/gallery') =>
     api.post('/upload/images', formData, {
@@ -209,6 +209,18 @@ export const bookAPI = {
   delete: (id) => api.delete(`/books/${id}`),
   togglePublish: (id) => api.patch(`/books/${id}/publish`),
   toggleFeatured: (id) => api.patch(`/books/${id}/featured`),
+}
+
+// ════════════════════════════════
+// PARTNERSHIPS
+// ════════════════════════════════
+export const partnershipAPI = {
+  getAll: (params) => api.get('/partnerships', { params }),
+  getById: (id) => api.get(`/partnerships/${id}`),
+  create: (data) => api.post('/partnerships', data),
+  update: (id, data) => api.put(`/partnerships/${id}`, data),
+  delete: (id) => api.delete(`/partnerships/${id}`),
+  togglePublish: (id) => api.patch(`/partnerships/${id}/publish`),
 }
 
 export default api

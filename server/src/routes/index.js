@@ -11,6 +11,7 @@ import dashboardRoutes from './dashboard.routes.js'
 import settingsRoutes from './settings.routes.js'
 import aiRoutes from './ai.routes.js'
 import bookRoutes from './book.routes.js'
+import partnershipRoutes from './partnership.routes.js'
 
 const router = Router()
 
@@ -25,5 +26,6 @@ router.use('/upload', uploadRoutes)
 router.use('/dashboard', dashboardRoutes)
 router.use('/settings', settingsRoutes)
 router.use('/ai', aiRoutes)
+router.use('/partnerships', partnershipRoutes)
 
 export default router 

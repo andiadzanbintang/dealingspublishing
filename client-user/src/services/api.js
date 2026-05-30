@@ -96,5 +96,12 @@ export const bookAPI = {
   getBySlug: (slug) => api.get(`/books/public/${slug}`),
 }
 
+// ════════════════════════════════
+// PARTNERSHIPS
+// ════════════════════════════════
+export const partnershipAPI = {
+  getAll: (params) => api.get('/partnerships/public', { params }),
+}
+
 
 export default api

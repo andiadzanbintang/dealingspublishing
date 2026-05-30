@@ -41,6 +41,7 @@ const quickLinks = [
   { name: 'News', path: '/news' },
   { name: 'Events', path: '/events' },
   { name: 'Books', path: '/books' },
+  { name: 'Partnerships', path: '/partnerships' },
 ]
 
 export default function Footer() {

@@ -18,6 +18,8 @@ import SettingsPage from '@/pages/SettingsPage'
 import AIConfigPage from '@/pages/AIConfigPage'
 import BooksManagePage from '@/pages/BooksManagePage'
 import BookFormPage from '@/pages/BookFormPage'
+import PartnershipsManagePage from '@/pages/PartnershipsManagePage'
+import PartnershipFormPage from '@/pages/PartnershipFormPage'
 
 export default function App() {
   return (
@@ -53,6 +55,10 @@ export default function App() {
             <Route path="/books" element={<BooksManagePage />} />
             <Route path="/books/new" element={<BookFormPage />} />
             <Route path="/books/edit/:id" element={<BookFormPage />} />
+
+            <Route path="/partnerships" element={<PartnershipsManagePage />} />
+            <Route path="/partnerships/new" element={<PartnershipFormPage />} />
+            <Route path="/partnerships/edit/:id" element={<PartnershipFormPage />} />
           </Route>
 
           {/* Redirects */}

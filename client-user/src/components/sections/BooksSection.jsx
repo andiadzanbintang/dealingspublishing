@@ -67,7 +67,7 @@ function FeaturedBookCard({ book, index = 0 }) {
 
           {book.subtitle && (
             <p className="mt-1 text-sm text-neutral-500 line-clamp-1">
-              {book.subtitle}
+              {book.subtitle} 
             </p>
           )}
 

@@ -172,7 +172,7 @@ export default function BookDetailPage() {
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 bg-neutral-900 overflow-hidden">
         <div className="absolute inset-0">
           {book.coverImage && (
-            <img
+            <img 
               src={book.coverImage}
               alt=""
               className="w-full h-full object-cover opacity-10 blur-sm"

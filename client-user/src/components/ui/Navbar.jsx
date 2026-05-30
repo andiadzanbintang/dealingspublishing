@@ -12,6 +12,7 @@ const navLinks = [
   { name: 'Books', path: '/books' },
   { name: 'News', path: '/news' },
   { name: 'Events', path: '/events' },
+  { name: 'Partnerships', path: '/partnerships' },
 ]
 
 export default function Navbar() {

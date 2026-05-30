@@ -20,6 +20,7 @@ import PrivacyPage from '@/pages/PrivacyPage'
 import TermsPage from '@/pages/TermsPage'
 import BooksPage from '@/pages/BooksPage'
 import BookDetailPage from '@/pages/BookDetailPage'
+import PartnershipsPage from '@/pages/PartnershipsPage'
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/journals/:slug" element={<JournalDetailPage />} />
             <Route path="/books" element={<BooksPage />} />
             <Route path="/books/:slug" element={<BookDetailPage />} />
+            <Route path="/partnerships" element={<PartnershipsPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/news/:slug" element={<NewsDetailPage />} />
             <Route path="/events" element={<EventsPage />} />

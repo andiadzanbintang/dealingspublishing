@@ -118,7 +118,7 @@ export const create = catchAsync(async (req, res) => {
     action: 'CREATE',
     entity: 'book',
     entityId: book._id,
-    details: `Created book: ${book.title}`,
+    details: `Created book: ${book.title}`, 
     ipAddress: req.ip,
   })
 
