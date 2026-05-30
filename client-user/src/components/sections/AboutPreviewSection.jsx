@@ -70,7 +70,7 @@ export default function AboutPreviewSection() {
             <div className="relative">
               <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-neutral-200/50">
                 <img
-                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80"
+                  src="https://images.unsplash.com/photo-1540205441050-9bb1625e6dae?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWVuJTIwdGVhbSUyMHdvcmt8ZW58MHx8MHx8fDI%3D"
                   alt="Research team collaborating"
                   className="w-full h-[500px] object-cover"
                 />

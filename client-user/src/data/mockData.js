@@ -39,7 +39,7 @@ export const mockTopics = [
     icon: '📊',
     color: '#F59E0B',
     journalCount: 18,
-  },
+  }, 
   {
     _id: '3',
     name: 'Artificial Intelligence',
