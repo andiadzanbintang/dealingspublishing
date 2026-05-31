@@ -466,7 +466,7 @@ export default function BookDetailPage() {
                       <MetaItem
                         icon={Languages}
                         label="Language"
-                        value={book.language || '—'}
+                        value={book.bookLanguage || '—'}
                       />
                       <MetaItem
                         icon={Files}
