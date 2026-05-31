@@ -8,6 +8,7 @@ import {
   Eye,
   EyeOff,
   Handshake,
+  ExternalLink,
 } from 'lucide-react'
 import DataTable from '@/components/ui/DataTable'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -128,6 +129,13 @@ export default function PartnershipsManagePage() {
               <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1 max-w-md">
                 {partnership.description || '—'}
               </p>
+
+              {partnership.externalUrl && (
+                <p className="text-xs text-primary-600 mt-1 flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" />
+                  <span className="truncate max-w-md">{partnership.externalUrl}</span>
+                </p>
+              )}
             </div>
           </div>
         )

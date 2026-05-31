@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { motion } from 'framer-motion'
-import { Handshake, RefreshCw } from 'lucide-react'
+import { Handshake, RefreshCw, ExternalLink } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { partnershipAPI } from '@/services/api'
 
@@ -143,6 +143,18 @@ export default function PartnershipsPage() {
                   <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
                     {partnership.description}
                   </p>
+
+                  {partnership.externalUrl && (
+                    <a
+                      href={partnership.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                    >
+                      Visit Partner
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
                 </motion.article>
               ))}
             </div>

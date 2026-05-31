@@ -5,6 +5,8 @@ export const createPartnershipSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   photo: z.string().min(1, 'Photo is required'),
 
+  externalUrl: z.string().optional().default(''),
+
   isPublished: z.boolean().optional().default(true),
 
   displayOrder: z

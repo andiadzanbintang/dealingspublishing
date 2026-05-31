@@ -20,6 +20,12 @@ const partnershipSchema = new mongoose.Schema(
       trim: true,
     },
 
+    externalUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+
     isPublished: {
       type: Boolean,
       default: true,

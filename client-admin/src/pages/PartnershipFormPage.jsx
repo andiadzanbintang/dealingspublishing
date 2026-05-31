@@ -24,6 +24,7 @@ export default function PartnershipFormPage() {
     defaultValues: {
       name: '',
       description: '',
+      externalUrl: '',
       displayOrder: 0,
       isPublished: true,
     },
@@ -47,6 +48,7 @@ export default function PartnershipFormPage() {
 
         setValue('name', partnership.name || '')
         setValue('description', partnership.description || '')
+        setValue('externalUrl', partnership.externalUrl || '')
         setValue('displayOrder', partnership.displayOrder ?? 0)
         setValue('isPublished', Boolean(partnership.isPublished))
         setPhoto(partnership.photo || null)
@@ -96,6 +98,7 @@ export default function PartnershipFormPage() {
       const payload = {
         name: data.name?.trim(),
         description: data.description?.trim(),
+        externalUrl: data.externalUrl?.trim(),
         photo: uploadedPhoto,
         displayOrder:
           data.displayOrder !== '' &&
@@ -215,6 +218,21 @@ export default function PartnershipFormPage() {
                     {errors.description.message}
                   </p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  External Link
+                </label>
+                <input
+                  type="url"
+                  {...register('externalUrl')}
+                  placeholder="https://partner-website.com"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-neutral-400">
+                  Optional link to the partner website or profile page.
+                </p>
               </div>
 
               <div>
