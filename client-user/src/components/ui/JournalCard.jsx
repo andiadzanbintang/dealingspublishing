@@ -1,6 +1,6 @@
 // src/components/ui/JournalCard.jsx
 import { Link } from 'react-router-dom'
-import { Calendar, Users, Eye } from 'lucide-react'
+import { Calendar, Users, Eye, Building2  } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import { formatDate, truncateText } from '@/lib/utils'
 import { motion } from 'framer-motion'
@@ -61,6 +61,13 @@ export default function JournalCard({ journal, index = 0 }) {
               {formatDate(journal.publicationDate)}
             </span>
           </div>
+
+          {journal.publishedBy && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-neutral-400">
+              <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{journal.publishedBy}</span>
+            </div>
+          )}
         </div>
       </Link>
     </motion.article>

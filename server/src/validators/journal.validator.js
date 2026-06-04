@@ -1,6 +1,16 @@
 // src/validators/journal.validator.js
 import { z } from 'zod'
 
+const optionalFloat = z.preprocess(
+  (value) => {
+    if (value === '' || value === null || value === undefined) return null
+
+    const numberValue = Number(value)
+    return Number.isNaN(numberValue) ? value : numberValue
+  },
+  z.number().min(0, 'Value cannot be negative').nullable().optional()
+)
+
 export const createJournalSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   slug: z.string().min(1, 'Slug is required'),
@@ -15,6 +25,10 @@ export const createJournalSchema = z.object({
   issue: z.string().optional().default(''),
   pages: z.string().optional().default(''),
   doi: z.string().optional().default(''),
+  publishedBy: z.string().optional().default(''),
+  hIndex: optionalFloat,
+  googleScholarIndex: optionalFloat,
+  webOfScienceIndex: optionalFloat,
   keywords: z.array(z.string()).optional().default([]),
   publicationDate: z.string().optional().nullable(),
   externalUrl: z.string().optional().default(''),

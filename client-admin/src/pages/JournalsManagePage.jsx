@@ -34,7 +34,7 @@ export default function JournalsManagePage() {
       )
       setJournals([])
     } finally {
-      setLoading(false)
+      setLoading(false) 
     }
   }
 
@@ -255,6 +255,34 @@ export default function JournalsManagePage() {
         </span>
       ),
     },
+
+    {
+      accessorKey: 'publishedBy',
+      header: 'Published By',
+      cell: ({ row }) => (
+        <span className="text-sm text-neutral-500">
+          {row.original.publishedBy || '—'}
+        </span>
+      ),
+    },
+
+    {
+      id: 'indexes',
+      header: 'Indexes',
+      cell: ({ row }) => {
+        const journal = row.original
+
+        return (
+          <div className="text-xs text-neutral-500 space-y-0.5">
+            <p>H: {journal.hIndex ?? '—'}</p>
+            <p>GS: {journal.googleScholarIndex ?? '—'}</p>
+            <p>WoS: {journal.webOfScienceIndex ?? '—'}</p>
+          </div>
+        )
+      },
+    },
+
+
     {
       id: 'actions',
       header: '',

@@ -40,6 +40,10 @@ export default function JournalFormPage() {
       issue: '',
       pages: '',
       doi: '',
+      publishedBy: '',
+      hIndex: '',
+      googleScholarIndex: '',
+      webOfScienceIndex: '',
       keywords: '',
       publicationDate: '',
       externalUrl: '',
@@ -109,6 +113,10 @@ export default function JournalFormPage() {
         setValue('issue', journal.issue || '')
         setValue('pages', journal.pages || '')
         setValue('doi', journal.doi || '')
+        setValue('publishedBy', journal.publishedBy || '')
+        setValue('hIndex', journal.hIndex ?? '')
+        setValue('googleScholarIndex', journal.googleScholarIndex ?? '')
+        setValue('webOfScienceIndex', journal.webOfScienceIndex ?? '')
         setValue('keywords', journal.keywords?.join(', ') || '')
         setValue(
           'publicationDate',
@@ -185,6 +193,25 @@ export default function JournalFormPage() {
         issue: data.issue || '',
         pages: data.pages || '',
         doi: data.doi || '',
+        publishedBy: data.publishedBy?.trim() || '',
+        hIndex:
+          data.hIndex !== '' && data.hIndex !== null && data.hIndex !== undefined
+            ? Number(data.hIndex)
+            : null,
+
+        googleScholarIndex:
+          data.googleScholarIndex !== '' &&
+          data.googleScholarIndex !== null &&
+          data.googleScholarIndex !== undefined
+            ? Number(data.googleScholarIndex)
+            : null,
+
+        webOfScienceIndex:
+          data.webOfScienceIndex !== '' &&
+          data.webOfScienceIndex !== null &&
+          data.webOfScienceIndex !== undefined
+            ? Number(data.webOfScienceIndex)
+            : null,
         keywords: data.keywords
           .split(',')
           .map((keyword) => keyword.trim())
@@ -451,6 +478,91 @@ export default function JournalFormPage() {
                     {...register('publicationDate')}
                     className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  Published By
+                </label>
+                <input
+                  {...register('publishedBy')}
+                  placeholder="Dealings Publishing"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    H-Index
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...register('hIndex', {
+                      min: {
+                        value: 0,
+                        message: 'H-Index cannot be negative',
+                      },
+                    })}
+                    placeholder="0.00"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  {errors.hIndex && (
+                    <p className="mt-1 text-xs text-danger-500">
+                      {errors.hIndex.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    Google Scholar Index
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...register('googleScholarIndex', {
+                      min: {
+                        value: 0,
+                        message: 'Google Scholar Index cannot be negative',
+                      },
+                    })}
+                    placeholder="0.00"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  {errors.googleScholarIndex && (
+                    <p className="mt-1 text-xs text-danger-500">
+                      {errors.googleScholarIndex.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    Web of Science Index
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...register('webOfScienceIndex', {
+                      min: {
+                        value: 0,
+                        message: 'Web of Science Index cannot be negative',
+                      },
+                    })}
+                    placeholder="0.00"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  {errors.webOfScienceIndex && (
+                    <p className="mt-1 text-xs text-danger-500">
+                      {errors.webOfScienceIndex.message}
+                    </p>
+                  )}
                 </div>
               </div>
 

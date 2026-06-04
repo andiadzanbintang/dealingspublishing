@@ -17,6 +17,10 @@ import {
   Tag,
   Home,
   ChevronRight,
+  Building2,
+  BarChart3,
+  GraduationCap,
+  Globe2,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Badge from '@/components/ui/Badge'
@@ -383,6 +387,20 @@ export default function JournalDetailPage() {
             </div>
           </div>
         </div>
+
+        {journal.publishedBy && (
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-neutral-500" />
+            <span>{journal.publishedBy}</span>
+          </div>
+        )}
+
+        {journal.hIndex !== null && journal.hIndex !== undefined && (
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-neutral-500" />
+            <span>H-Index: {journal.hIndex}</span>
+          </div>
+        )}
       </section>
 
       {/* ═══ Main Content ═══ */}
@@ -561,6 +579,40 @@ export default function JournalDetailPage() {
                           </div>
                         </div>
                       )}
+
+                      {journal.publishedBy && (
+                        <MetaItem
+                          icon={Building2}
+                          label="Published By"
+                          value={journal.publishedBy}
+                        />
+                      )}
+
+                      {journal.hIndex !== null && journal.hIndex !== undefined && (
+                        <MetaItem
+                          icon={BarChart3}
+                          label="H-Index"
+                          value={journal.hIndex}
+                        />
+                      )}
+
+                      {journal.googleScholarIndex !== null &&
+                        journal.googleScholarIndex !== undefined && (
+                          <MetaItem
+                            icon={GraduationCap}
+                            label="Google Scholar Index"
+                            value={journal.googleScholarIndex}
+                          />
+                        )}
+
+                      {journal.webOfScienceIndex !== null &&
+                        journal.webOfScienceIndex !== undefined && (
+                          <MetaItem
+                            icon={Globe2}
+                            label="Web of Science Index"
+                            value={journal.webOfScienceIndex}
+                          />
+                        )}
 
                       {journal.publicationDate && (
                         <div className="flex items-start gap-3">
