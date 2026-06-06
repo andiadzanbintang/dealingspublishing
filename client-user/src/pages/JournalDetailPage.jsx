@@ -111,7 +111,7 @@ export default function JournalDetailPage() {
     return (
       <>
         <Helmet>
-          <title>Loading Journal — Design Publishing</title>
+          <title>Loading Journal — Dealings Publishing</title>
         </Helmet>
 
         <div className="pt-32 pb-20 bg-neutral-50 min-h-screen">
@@ -136,7 +136,7 @@ export default function JournalDetailPage() {
     return (
       <>
         <Helmet>
-          <title>Journal Not Found — Design Publishing</title>
+          <title>Journal Not Found — Dealings Publishing</title>
         </Helmet>
 
         <div className="min-h-screen flex items-center justify-center">
@@ -173,7 +173,7 @@ export default function JournalDetailPage() {
 
   const citationAPA = `${authors.join(', ') || 'Unknown author'} (${publicationYear}). ${
     journal.title
-  }. Design Publishing${journal.volume ? `, ${journal.volume}` : ''}${
+  }. Dealings Publishing${journal.volume ? `, ${journal.volume}` : ''}${
     journal.issue ? `(${journal.issue})` : ''
   }${journal.pages ? `, ${journal.pages}` : ''}${
     journal.doi ? `. https://doi.org/${journal.doi}` : ''
@@ -198,7 +198,7 @@ export default function JournalDetailPage() {
   return (
     <>
       <Helmet>
-        <title>{journal.title} — Design Publishing</title>
+        <title>{journal.title} — Dealings Publishing</title>
         <meta name="description" content={journal.abstract || journal.title} />
 
         <meta property="og:title" content={journal.title} />
@@ -341,6 +341,20 @@ export default function JournalDetailPage() {
                     <span className="break-all">DOI: {journal.doi}</span>
                   </div>
                 )}
+
+                {journal.publishedBy && (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-neutral-500" />
+                    <span>{journal.publishedBy}</span>
+                  </div>
+                )}
+
+                {journal.hIndex !== null && journal.hIndex !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-neutral-500" />
+                    <span>CiteScore: {journal.hIndex}</span>
+                  </div>
+                )}
               </motion.div>
 
               <motion.div
@@ -387,20 +401,6 @@ export default function JournalDetailPage() {
             </div>
           </div>
         </div>
-
-        {journal.publishedBy && (
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-neutral-500" />
-            <span>{journal.publishedBy}</span>
-          </div>
-        )}
-
-        {journal.hIndex !== null && journal.hIndex !== undefined && (
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-neutral-500" />
-            <span>H-Index: {journal.hIndex}</span>
-          </div>
-        )}
       </section>
 
       {/* ═══ Main Content ═══ */}
@@ -591,7 +591,7 @@ export default function JournalDetailPage() {
                       {journal.hIndex !== null && journal.hIndex !== undefined && (
                         <MetaItem
                           icon={BarChart3}
-                          label="H-Index"
+                          label="CiteScore"
                           value={journal.hIndex}
                         />
                       )}
@@ -609,7 +609,7 @@ export default function JournalDetailPage() {
                         journal.webOfScienceIndex !== undefined && (
                           <MetaItem
                             icon={Globe2}
-                            label="Web of Science Index"
+                            label="Impact Factor"
                             value={journal.webOfScienceIndex}
                           />
                         )}
@@ -714,5 +714,21 @@ export default function JournalDetailPage() {
         </section>
       )}
     </>
+  )
+}
+
+function MetaItem({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
+      <div>
+        <dt className="text-xs text-neutral-500 uppercase tracking-wider">
+          {label}
+        </dt>
+        <dd className="mt-0.5 text-sm font-medium text-neutral-800 break-words">
+          {value}
+        </dd>
+      </div>
+    </div>
   )
 }
