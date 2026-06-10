@@ -77,8 +77,10 @@ export default function BookDetailPage() {
       (book.publicationDate
         ? new Date(book.publicationDate).getFullYear()
         : 'n.d.')
+    
+    const city = book.city ? `${book.city}: ` : ''
 
-    return `${writerText}. (${year}). ${book.title}. ${
+    return `${writerText}. (${year}). ${book.title}. ${city}${
       book.publishedBy || 'Dealings Publishing'
     }. ISBN: ${book.isbn || 'N/A'}`
   }, [book, writers])
