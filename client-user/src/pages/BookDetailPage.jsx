@@ -20,6 +20,7 @@ import {
   Home,
   ChevronRight,
   Banknote,
+  Landmark,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Badge from '@/components/ui/Badge'
@@ -289,6 +290,11 @@ export default function BookDetailPage() {
                   <span>ISBN: {book.isbn || '—'}</span>
                 </div>
 
+                <div className="flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-neutral-500" />
+                  <span>{book.city || '—'}</span>
+                </div>
+
                 {formattedPrice && (
                   <div className="flex items-center gap-2">
                     <Banknote className="w-4 h-4 text-neutral-500" />
@@ -468,6 +474,13 @@ export default function BookDetailPage() {
                         label="Language"
                         value={book.bookLanguage || '—'}
                       />
+
+                      <MetaItem
+                        icon={Landmark}
+                        label="City"
+                        value={book.city || '—'}
+                      />
+                      
                       <MetaItem
                         icon={Files}
                         label="Edition / Pages"

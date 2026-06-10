@@ -40,6 +40,7 @@ export default function BookFormPage() {
       publicationYear: '',
       publicationDate: '',
       bookLanguage: '',
+      city: '',
       edition: '',
       pages: '',
       category: '',
@@ -93,6 +94,7 @@ export default function BookFormPage() {
             : ''
         )
         setValue('bookLanguage', book.bookLanguage || '')
+        setValue('city', book.city || '')
         setValue('edition', book.edition || '')
         setValue('pages', book.pages || '')
         setValue('category', book.category || '')
@@ -180,6 +182,7 @@ export default function BookFormPage() {
         publicationDate: data.publicationDate || null,
 
         bookLanguage: data.bookLanguage || '',
+        city: data.city || '',
         edition: data.edition || '',
         pages: data.pages || '',
         category: data.category || '',
@@ -532,6 +535,17 @@ export default function BookFormPage() {
                     className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                    City
+                  </label>
+                  <input
+                    {...register('city')}
+                    placeholder="Jakarta"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1.5">

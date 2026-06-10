@@ -71,6 +71,13 @@ export default function BookCard({ book, index = 0 }) {
                   </span>
                 </div>
 
+                {book.city && (
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                    <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{book.city}</span>
+                  </div>
+                )}
+
                 {formatBookPrice(book.price, book.priceCurrency) && (
                   <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
                     <Banknote className="w-3.5 h-3.5 flex-shrink-0" />

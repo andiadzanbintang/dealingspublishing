@@ -29,6 +29,7 @@ export const createBookSchema = z.object({
   publicationDate: z.string().optional().nullable(),
 
   bookLanguage: z.string().optional().default(''),
+  city: z.string().optional().default(''),
   edition: z.string().optional().default(''),
   pages: z.string().optional().default(''),
   category: z.string().optional().default(''),

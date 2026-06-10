@@ -16,7 +16,7 @@ const startServer = async () => {
   await connectDB()
   connectRedis()
   connectCloudinary()
-  initAI()
+  initAI() 
 
   app.listen(PORT, () => {
     logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`)
