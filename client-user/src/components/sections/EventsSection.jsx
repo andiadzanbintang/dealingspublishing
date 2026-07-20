@@ -1,3 +1,4 @@
+// client-user/src/components/sections/EventsSection.jsx
 import { useEffect, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Autoplay } from 'swiper/modules'
@@ -15,7 +16,7 @@ export default function EventsSection() {
   const [featuredEvents, setFeaturedEvents] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  useEffect(() => { 
     const fetchEvents = async () => {
       try {
         const response = await eventAPI.getUpcoming()

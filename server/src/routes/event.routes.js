@@ -1,4 +1,4 @@
-// src/routes/event.routes.js
+// /server/src/routes/event.routes.js
 import { Router } from 'express'
 import * as ctrl from '../controllers/event.controller.js'
 import { protect, restrictTo } from '../middleware/auth.middleware.js'

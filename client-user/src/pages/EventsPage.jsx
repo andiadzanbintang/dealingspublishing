@@ -1,4 +1,4 @@
-// src/pages/EventsPage.jsx
+// client-user/src/pages/EventsPage.jsx
 import { useEffect, useState, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Search, X } from 'lucide-react'

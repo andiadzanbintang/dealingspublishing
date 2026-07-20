@@ -1,4 +1,4 @@
-// src/pages/EventDetailPage.jsx
+// client-user/src/pages/EventDetailPage.jsx
 import { useParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import {
@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Share2,
   ExternalLink,
-  Clock,
   Tag,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -16,7 +15,8 @@ import Button from '@/components/ui/Button'
 import EventCard from '@/components/ui/EventCard'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { formatDate } from '@/lib/utils'
-import { mockEvents } from '@/data/mockData'
+import { eventAPI } from '../services/api'
+import { useEffect, useState } from 'react'
 
 const eventTypeColors = {
   conference: '#6366F1',
@@ -28,19 +28,101 @@ const eventTypeColors = {
 export default function EventDetailPage() {
   const { slug } = useParams()
 
-  const event = mockEvents.find((e) => e.slug === slug)
-  const relatedEvents = mockEvents
-    .filter((e) => e._id !== event?._id)
-    .slice(0, 3)
+  const [event, setEvent] = useState(null)
+  const [relatedEvents, setRelatedEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
+  // Fetch the event whenever the slug changes
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchEvent = async () => {
+      setLoading(true)
+      setError('')
+      setEvent(null)
+
+      try {
+        const response = await eventAPI.getBySlug(slug)
+        if (!cancelled) {
+          setEvent(response?.data || null)
+        }
+      } catch (err) {
+        console.error('Failed to fetch event', err)
+        if (!cancelled) {
+          setError(
+            err.response?.data?.message || 'Failed to load event. Please try again'
+          )
+          setEvent(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    fetchEvent()
+
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
+
+  // Fetch related events once we know the current event
+  useEffect(() => {
+    if (!event?._id) {
+      setRelatedEvents([])
+      return
+    }
+
+    let cancelled = false
+
+    const fetchRelated = async () => {
+      try {
+        const response = await eventAPI.getAll({
+          limit: 4,
+          sort: '-eventDate',
+        })
+        const items = (response?.data || [])
+          .filter((e) => e._id !== event._id)
+          .slice(0, 3)
+
+        if (!cancelled) setRelatedEvents(items)
+      } catch (err) {
+        console.error('Failed to fetch related events', err)
+        if (!cancelled) setRelatedEvents([])
+      }
+    }
+
+    fetchRelated()
+
+    return () => {
+      cancelled = true
+    }
+  }, [event?._id])
+
+  // ── Loading state ──
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-neutral-200 border-t-primary-600 rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-neutral-500 text-sm">Loading event…</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Not found / error state ──
   if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🎪</div>
-          <h1 className="text-2xl font-bold text-neutral-900">Event Not Found</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            {error ? 'Something Went Wrong' : 'Event Not Found'}
+          </h1>
           <p className="mt-2 text-neutral-500">
-            The event you&apos;re looking for doesn&apos;t exist.
+            {error || "The event you're looking for doesn't exist."}
           </p>
           <Link to="/events">
             <Button variant="primary" className="mt-6" icon={ArrowLeft} iconPosition="left">
@@ -83,7 +165,6 @@ export default function EventDetailPage() {
         </div>
 
         <div className="relative container-custom">
-          {/* Breadcrumbs */}
           <motion.nav
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -97,7 +178,6 @@ export default function EventDetailPage() {
           </motion.nav>
 
           <div className="grid lg:grid-cols-3 gap-12 items-start">
-            {/* Left — Info */}
             <div className="lg:col-span-2">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -164,7 +244,6 @@ export default function EventDetailPage() {
               </motion.div>
             </div>
 
-            {/* Right — Image */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -185,7 +264,6 @@ export default function EventDetailPage() {
       <section className="section-padding bg-white">
         <div className="container-custom">
           <div className="grid lg:grid-cols-3 gap-12">
-            {/* Left — Description */}
             <div className="lg:col-span-2">
               <AnimatedSection>
                 <div className="rounded-2xl overflow-hidden mb-10 shadow-lg lg:hidden">
@@ -205,23 +283,22 @@ export default function EventDetailPage() {
                   {event.description}
                 </p>
 
-                {/* TODO: Replace with event.content (HTML from backend) */}
-                <div className="prose prose-neutral prose-lg max-w-none">
-                  <p>
-                    This event brought together leading researchers, practitioners,
-                    and thought leaders to discuss the latest developments and
-                    share their insights on emerging trends in the field.
-                  </p>
-                  <p>
-                    Attendees had the opportunity to participate in keynote
-                    sessions, panel discussions, poster presentations, and
-                    networking activities designed to foster collaboration and
-                    knowledge exchange.
-                  </p>
-                </div>
+                {event.content ? (
+                  <div
+                    className="prose prose-neutral prose-lg max-w-none"
+                    dangerouslySetInnerHTML={{ __html: event.content }}
+                  />
+                ) : (
+                  <div className="prose prose-neutral prose-lg max-w-none">
+                    <p>
+                      This event brought together leading researchers, practitioners,
+                      and thought leaders to discuss the latest developments and
+                      share their insights on emerging trends in the field.
+                    </p>
+                  </div>
+                )}
               </AnimatedSection>
 
-              {/* Gallery (if available) */}
               {event.gallery && event.gallery.length > 0 && (
                 <AnimatedSection delay={0.15}>
                   <h2 className="text-2xl font-bold text-neutral-900 mt-10 mb-6">
@@ -240,7 +317,6 @@ export default function EventDetailPage() {
                 </AnimatedSection>
               )}
 
-              {/* Back */}
               <AnimatedSection delay={0.2}>
                 <div className="mt-12 pt-8 border-t border-neutral-200">
                   <Link to="/events">
@@ -252,11 +328,9 @@ export default function EventDetailPage() {
               </AnimatedSection>
             </div>
 
-            {/* Right — Sidebar */}
             <div className="lg:col-span-1">
               <AnimatedSection delay={0.2}>
                 <div className="sticky top-28 space-y-6">
-                  {/* Event Info Card */}
                   <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
                     <h3 className="text-lg font-semibold text-neutral-900 mb-5">
                       Event Details
