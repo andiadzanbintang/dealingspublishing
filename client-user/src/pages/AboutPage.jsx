@@ -109,23 +109,30 @@ const teamMembers = [
       'Providing strategic academic and publishing guidance to strengthen editorial quality, publication management, and institutional collaboration.',
   },
   {
-    name: 'dr Suci Triana Putri',
-    role: 'Finance & Administration Manager',
-    email: 'sucitrianaputri@gmail.com',
-    image:
-      '/suci.jpg',
-    description:
-      'Responsible for managing company finances, operational administration, document archiving, budget management, and ensuring that administrative and financial governance runs effectively and professionally.',
-  },
-  {
     name: 'Dr Siti Sofiaturrohmah',
     role: 'Creative & Publication Officer',
     email: 'siti19044@dealingspublishing.com',
     image:
-      '/siti.jpg',
+      '/syifa.jpeg',
     description:
       'Manage publication design, book and journal layout, visual branding, publication media, and creative content development to support company identity and promotion.',
   },
+  {
+  name: 'Dr. Huang Yuxi',
+  role: 'Research & Academic Development Advisor',
+  email: '549236288@qq.com',
+  image: '/huang-yuxi.jpg',
+  description:
+    'Provides strategic expertise in academic research, resilient cities, collaborative governance, public administration, and scientific publication development. Supports research quality improvement, international collaboration, discipline development, and capacity building for academic and professional publication projects.',
+},
+{
+  name: 'Andi Adzan Bintang Hawari',
+  role: 'Full Stack Developer',
+  email: 'andiadzanbintang.work@gmail.com',
+  image: '/bintang.jpeg',
+  description:
+    'The technical force behind turning ideas into working products. A full-stack developer, data analyst, and technology strategist with expertise spanning software engineering, system architecture, automation, cybersecurity, and data intelligence. From designing platforms and building scalable infrastructures to solving complex technical challenges, he specializes in making the impossible possible and ensuring that technology delivers real-world impact.',
+}
 ]
 
 const defaultSettings = {
@@ -489,4 +496,4 @@ export default function AboutPage() {
       <SubscribeSection />
     </>
   )
-}
+} 
