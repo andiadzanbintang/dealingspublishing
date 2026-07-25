@@ -123,7 +123,7 @@ const teamMembers = [
   email: '549236288@qq.com',
   image: '/huang-yuxi.jpg',
   description:
-    'Provides strategic expertise in academic research, resilient cities, collaborative governance, public administration, and scientific publication development. Supports research quality improvement, international collaboration, discipline development, and capacity building for academic and professional publication projects.',
+    'Provides academic research expertise, publication development, and international collaboration support to strengthen research quality, scientific impact, and institutional growth.',
 },
 {
   name: 'Andi Adzan Bintang Hawari',
@@ -131,7 +131,7 @@ const teamMembers = [
   email: 'andiadzanbintang.work@gmail.com',
   image: '/bintang.jpeg',
   description:
-    'The technical force behind turning ideas into working products. A full-stack developer, data analyst, and technology strategist with expertise spanning software engineering, system architecture, automation, cybersecurity, and data intelligence. From designing platforms and building scalable infrastructures to solving complex technical challenges, he specializes in making the impossible possible and ensuring that technology delivers real-world impact.',
+    'Turns ideas into working technology. Designs and develops web platforms, automation systems, databases, and digital infrastructure while leveraging expertise in software engineering, data analytics, and cybersecurity to solve complex challenges and drive innovation.',
 }
 ]
 
