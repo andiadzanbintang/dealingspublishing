@@ -110,7 +110,7 @@ const teamMembers = [
   },
   {
     name: 'Dr Siti Sofiaturrohmah',
-    role: 'Chief Manager Officer',
+    role: 'Chief Manager Officer (CMO)',
     email: 'siti19044@dealingspublishing.com',
     image:
       '/syifa.jpeg',
@@ -127,7 +127,7 @@ const teamMembers = [
 },
 {
   name: 'Andi Adzan Bintang Hawari',
-  role: 'Full Stack Developer',
+  role: 'Chief Technology Officer (CTO)',
   email: 'andiadzanbintang.work@gmail.com',
   image: '/bintang.jpeg',
   description:
