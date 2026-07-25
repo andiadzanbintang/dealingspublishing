@@ -92,7 +92,7 @@ const timeline = [
 const teamMembers = [
   {
     name: 'Dr Abdillah',
-    role: 'Founder & Publishing Director',
+    role: 'Founder & Chief Executive Officer (CEO)',
     email: 'abdillah@dealingspublishing.com',
     image:
       '/abdillah.jpg',
@@ -110,7 +110,7 @@ const teamMembers = [
   },
   {
     name: 'Dr Siti Sofiaturrohmah',
-    role: 'Creative & Publication Officer',
+    role: 'Chief Manager Officer',
     email: 'siti19044@dealingspublishing.com',
     image:
       '/syifa.jpeg',
