@@ -3,19 +3,27 @@ import { useParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import {
   Calendar,
+  CalendarClock,
+  CheckCircle2,
+  ClipboardList,
+  ExternalLink,
+  Info,
   MapPin,
   ArrowLeft,
+  ArrowRight,
   Share2,
-  ExternalLink,
   Tag,
+  Ticket,
+  Users,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EventCard from '@/components/ui/EventCard'
 import AnimatedSection from '@/components/ui/AnimatedSection'
-import { formatDate } from '@/lib/utils'
-import { eventAPI } from '../services/api'
+import { formatDate, formatIDR, formatUSD } from '@/lib/utils'
+import { eventAPI, registrationAPI } from '../services/api'
+import { useParticipantAuth } from '@/hooks/useParticipantAuth'
 import { useEffect, useState } from 'react'
 
 const eventTypeColors = {
@@ -27,9 +35,11 @@ const eventTypeColors = {
 
 export default function EventDetailPage() {
   const { slug } = useParams()
+  const { isAuthenticated } = useParticipantAuth()
 
   const [event, setEvent] = useState(null)
   const [relatedEvents, setRelatedEvents] = useState([])
+  const [myRegistration, setMyRegistration] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -66,6 +76,30 @@ export default function EventDetailPage() {
       cancelled = true
     }
   }, [slug])
+
+  // If the visitor is signed in, find out whether they already registered
+  useEffect(() => {
+    if (!isAuthenticated || !event?.registration?.enabled) {
+      setMyRegistration(null)
+      return
+    }
+
+    let cancelled = false
+
+    const fetchMine = async () => {
+      try {
+        const response = await registrationAPI.getEventConfig(slug)
+        if (!cancelled) setMyRegistration(response?.data?.myRegistration || null)
+      } catch {
+        if (!cancelled) setMyRegistration(null)
+      }
+    }
+
+    fetchMine()
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, event?.registration?.enabled, slug])
 
   // Fetch related events once we know the current event
   useEffect(() => {
@@ -146,10 +180,31 @@ export default function EventDetailPage() {
     }
   }
 
+  // ── Registration availability ──
+  const cfg = event.registration || {}
+  const now = new Date()
+  const registrationOpen =
+    Boolean(cfg.enabled) &&
+    (!cfg.opensAt || now >= new Date(cfg.opensAt)) &&
+    (!cfg.closesAt || now <= new Date(cfg.closesAt))
+
+  const hasActiveRegistration =
+    myRegistration && myRegistration.submissionStatus !== 'rejected'
+
+  const registerHref = hasActiveRegistration
+    ? `/my/registrations/${myRegistration._id}`
+    : `/events/${event.slug}/register`
+
+  const registerLabel = hasActiveRegistration
+    ? 'View my registration'
+    : myRegistration
+      ? 'Revise & resubmit'
+      : cfg.ctaLabel || 'Register Event'
+
   return (
     <>
       <Helmet>
-        <title>{event.title} — ResearchHub</title>
+        <title>{event.title} — Dealings Publishing</title>
         <meta name="description" content={event.description} />
       </Helmet>
 
@@ -183,7 +238,7 @@ export default function EventDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="flex gap-2"
+                className="flex flex-wrap gap-2"
               >
                 <Badge color={eventTypeColors[event.eventType]} size="md">
                   {event.eventType}
@@ -191,6 +246,11 @@ export default function EventDetailPage() {
                 <Badge className="bg-white/10 text-white backdrop-blur-sm border-0" size="md">
                   {event.locationType}
                 </Badge>
+                {registrationOpen && (
+                  <Badge className="bg-emerald-500/15 text-emerald-300 backdrop-blur-sm border-0" size="md">
+                    Registration open
+                  </Badge>
+                )}
               </motion.div>
 
               <motion.h1
@@ -206,17 +266,19 @@ export default function EventDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="mt-6 flex flex-wrap items-center gap-4 text-sm text-neutral-400"
+                className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-neutral-400"
               >
                 <span className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-4 h-4 flex-shrink-0" />
                   {formatDate(event.eventDate)}
                   {event.endDate && ` — ${formatDate(event.endDate)}`}
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4" />
-                  {event.location}
-                </span>
+                {event.location && (
+                  <span className="flex items-start gap-1.5 max-w-xl">
+                    <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{event.location}</span>
+                  </span>
+                )}
               </motion.div>
 
               <motion.div
@@ -225,13 +287,27 @@ export default function EventDetailPage() {
                 transition={{ delay: 0.4 }}
                 className="mt-8 flex flex-wrap gap-3"
               >
+                {registrationOpen && (
+                  <Link to={registerHref}>
+                    <Button variant="primary" icon={ArrowRight}>
+                      {registerLabel}
+                    </Button>
+                  </Link>
+                )}
+
                 {event.externalUrl && (
                   <a href={event.externalUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="primary" icon={ExternalLink} iconPosition="left">
+                    <Button
+                      variant={registrationOpen ? 'ghost' : 'primary'}
+                      className={registrationOpen ? 'text-white/70 hover:text-white hover:bg-white/10' : ''}
+                      icon={ExternalLink}
+                      iconPosition="left"
+                    >
                       Visit Event Page
                     </Button>
                   </a>
                 )}
+
                 <Button
                   variant="ghost"
                   className="text-white/70 hover:text-white hover:bg-white/10"
@@ -264,7 +340,7 @@ export default function EventDetailPage() {
       <section className="section-padding bg-white">
         <div className="container-custom">
           <div className="grid lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 min-w-0">
               <AnimatedSection>
                 <div className="rounded-2xl overflow-hidden mb-10 shadow-lg lg:hidden">
                   <img
@@ -275,33 +351,99 @@ export default function EventDetailPage() {
                 </div>
               </AnimatedSection>
 
+              {/* ── About ── */}
               <AnimatedSection delay={0.1}>
-                <h2 className="text-2xl font-bold text-neutral-900 mb-4">
-                  About This Event
-                </h2>
-                <p className="text-neutral-600 leading-relaxed text-lg mb-6">
-                  {event.description}
-                </p>
+                <div className="flex items-center gap-2.5 mb-5">
+                  <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
+                    <Info className="w-4 h-4 text-primary-600" />
+                  </span>
+                  <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">
+                    About This Event
+                  </h2>
+                </div>
+
+                {event.description && (
+                  <p className="text-neutral-600 leading-relaxed text-lg border-l-2 border-primary-200 pl-5 mb-8">
+                    {event.description}
+                  </p>
+                )}
 
                 {event.content ? (
                   <div
-                    className="prose prose-neutral prose-lg max-w-none"
+                    className="rich-content"
                     dangerouslySetInnerHTML={{ __html: event.content }}
                   />
                 ) : (
-                  <div className="prose prose-neutral prose-lg max-w-none">
+                  <div className="rich-content">
                     <p>
-                      This event brought together leading researchers, practitioners,
-                      and thought leaders to discuss the latest developments and
-                      share their insights on emerging trends in the field.
+                      This event brings together leading researchers, practitioners, and
+                      thought leaders to discuss the latest developments and share their
+                      insights on emerging trends in the field.
                     </p>
                   </div>
                 )}
               </AnimatedSection>
 
-              {event.gallery && event.gallery.length > 0 && (
+              {/* ── How to register ── */}
+              {registrationOpen && (
                 <AnimatedSection delay={0.15}>
-                  <h2 className="text-2xl font-bold text-neutral-900 mt-10 mb-6">
+                  <div className="mt-12 pt-10 border-t border-neutral-200">
+                    <div className="flex items-center gap-2.5 mb-6">
+                      <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
+                        <ClipboardList className="w-4 h-4 text-primary-600" />
+                      </span>
+                      <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">
+                        How Registration Works
+                      </h2>
+                    </div>
+
+                    {cfg.instructions && (
+                      <p className="text-neutral-600 leading-relaxed mb-6">{cfg.instructions}</p>
+                    )}
+
+                    <ol className="grid sm:grid-cols-2 gap-4">
+                      {[
+                        {
+                          title: 'Create an account',
+                          body: 'One participant account covers every Dealings Publishing event.',
+                        },
+                        {
+                          title: 'Fill in the form',
+                          body: 'Profile, manuscript details, attendance type, and your abstract file.',
+                        },
+                        {
+                          title: 'Wait for review',
+                          body: 'The committee accepts or asks for a revision. You can resubmit freely.',
+                        },
+                        {
+                          title: 'Pay & get your ticket',
+                          body: 'Transfer the fee, upload the receipt, and receive your e-ticket by email.',
+                        },
+                      ].map((step, index) => (
+                        <li
+                          key={step.title}
+                          className="flex gap-4 p-5 rounded-2xl border border-neutral-200 bg-neutral-50/60"
+                        >
+                          <span className="w-7 h-7 rounded-lg bg-primary-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                            {index + 1}
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold text-neutral-900">{step.title}</p>
+                            <p className="mt-1 text-sm text-neutral-500 leading-relaxed">
+                              {step.body}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </AnimatedSection>
+              )}
+
+              {/* ── Gallery ── */}
+              {event.gallery && event.gallery.length > 0 && (
+                <AnimatedSection delay={0.2}>
+                  <h2 className="text-2xl font-bold text-neutral-900 mt-12 mb-6 tracking-tight">
                     Gallery
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -317,7 +459,7 @@ export default function EventDetailPage() {
                 </AnimatedSection>
               )}
 
-              <AnimatedSection delay={0.2}>
+              <AnimatedSection delay={0.25}>
                 <div className="mt-12 pt-8 border-t border-neutral-200">
                   <Link to="/events">
                     <Button variant="ghost" icon={ArrowLeft} iconPosition="left">
@@ -328,53 +470,116 @@ export default function EventDetailPage() {
               </AnimatedSection>
             </div>
 
+            {/* ═══ Sidebar ═══ */}
             <div className="lg:col-span-1">
               <AnimatedSection delay={0.2}>
                 <div className="sticky top-28 space-y-6">
+                  {/* Registration CTA */}
+                  {registrationOpen && (
+                    <div className="bg-primary-600 rounded-2xl p-6 text-white">
+                      <div className="flex items-center gap-2">
+                        <Ticket className="w-4 h-4" />
+                        <p className="text-xs uppercase tracking-wider text-primary-100">
+                          Registration open
+                        </p>
+                      </div>
+
+                      <p className="mt-3 text-sm text-primary-50 leading-relaxed">
+                        {hasActiveRegistration
+                          ? 'You already have a registration for this event.'
+                          : 'Secure your place — submit your abstract and attendance details.'}
+                      </p>
+
+                      <Link to={registerHref} className="block mt-5">
+                        <Button variant="white" className="w-full" icon={ArrowRight}>
+                          {registerLabel}
+                        </Button>
+                      </Link>
+
+                      {cfg.closesAt && (
+                        <p className="mt-3 text-xs text-primary-100 text-center">
+                          Closes {formatDate(cfg.closesAt)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Fees */}
+                  {registrationOpen && (cfg.fees || []).length > 0 && (
+                    <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-neutral-100 flex items-center gap-2">
+                        <Users className="w-4 h-4 text-neutral-400" />
+                        <h3 className="text-sm font-semibold text-neutral-900">
+                          Registration Fees
+                        </h3>
+                      </div>
+
+                      <ul className="divide-y divide-neutral-100">
+                        {cfg.fees.map((fee) => (
+                          <li key={`${fee.role}-${fee.mode}`} className="px-6 py-4">
+                            <p className="text-sm font-medium text-neutral-800 capitalize">
+                              {fee.label || `${fee.role} — ${fee.mode}`}
+                            </p>
+                            <p className="mt-1 text-base font-bold text-neutral-900">
+                              {formatIDR(fee.amountIdr)}
+                            </p>
+                            <p className="text-xs text-neutral-500">{formatUSD(fee.amountUsd)}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Key dates & details */}
                   <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-5">
+                    <h3 className="text-sm font-semibold text-neutral-900 mb-5">
                       Event Details
                     </h3>
+
                     <dl className="space-y-4">
-                      <div className="flex items-start gap-3">
-                        <Calendar className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <dt className="text-xs text-neutral-500 uppercase tracking-wider">
-                            Date
-                          </dt>
-                          <dd className="mt-0.5 text-sm font-medium text-neutral-800">
-                            {formatDate(event.eventDate)}
-                            {event.endDate && (
-                              <>
-                                <br />
-                                to {formatDate(event.endDate)}
-                              </>
-                            )}
-                          </dd>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <dt className="text-xs text-neutral-500 uppercase tracking-wider">
-                            Location
-                          </dt>
-                          <dd className="mt-0.5 text-sm font-medium text-neutral-800">
-                            {event.location}
-                          </dd>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <Tag className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <dt className="text-xs text-neutral-500 uppercase tracking-wider">
-                            Type
-                          </dt>
-                          <dd className="mt-0.5 text-sm font-medium text-neutral-800 capitalize">
-                            {event.eventType} · {event.locationType}
-                          </dd>
-                        </div>
-                      </div>
+                      <DetailRow icon={Calendar} label="Date">
+                        {formatDate(event.eventDate)}
+                        {event.endDate && (
+                          <>
+                            <br />
+                            to {formatDate(event.endDate)}
+                          </>
+                        )}
+                      </DetailRow>
+
+                      {event.location && (
+                        <DetailRow icon={MapPin} label="Location">
+                          <span className="leading-relaxed">{event.location}</span>
+                        </DetailRow>
+                      )}
+
+                      <DetailRow icon={Tag} label="Type">
+                        <span className="capitalize">
+                          {event.eventType} · {event.locationType}
+                        </span>
+                      </DetailRow>
+
+                      {cfg.abstractDeadline && (
+                        <DetailRow icon={CalendarClock} label="Abstract deadline">
+                          {formatDate(cfg.abstractDeadline)}
+                        </DetailRow>
+                      )}
+
+                      {cfg.fullPaperDeadline && (
+                        <DetailRow icon={CalendarClock} label="Full paper deadline">
+                          {formatDate(cfg.fullPaperDeadline)}
+                        </DetailRow>
+                      )}
+
+                      {(cfg.outputTypes || []).length > 0 && (
+                        <DetailRow icon={CheckCircle2} label="Publication output">
+                          <ul className="space-y-1">
+                            {cfg.outputTypes.map((option) => (
+                              <li key={option.value}>{option.label}</li>
+                            ))}
+                          </ul>
+                        </DetailRow>
+                      )}
                     </dl>
                   </div>
                 </div>
@@ -402,5 +607,17 @@ export default function EventDetailPage() {
         </section>
       )}
     </>
+  )
+}
+
+function DetailRow({ icon: Icon, label, children }) {
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
+      <div className="min-w-0">
+        <dt className="text-xs text-neutral-500 uppercase tracking-wider">{label}</dt>
+        <dd className="mt-0.5 text-sm font-medium text-neutral-800 break-words">{children}</dd>
+      </div>
+    </div>
   )
 }

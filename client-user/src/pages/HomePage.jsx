@@ -12,10 +12,10 @@ export default function HomePage() {
   return (
     <>
       <Helmet>
-        <title>Design Publishing — Advancing Research, Transforming Knowledge</title>
+        <title>Dealings Publishing — Advancing Research, Transforming Knowledge</title>
         <meta
           name="description"
-          content="Design Publishing publishes cutting-edge research across multiple disciplines, connecting scholars worldwide."
+          content="Dealings Publishing publishes cutting-edge research across multiple disciplines, connecting scholars worldwide."
         />
       </Helmet>
 

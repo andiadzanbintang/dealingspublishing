@@ -96,10 +96,10 @@ export default function EventsPage() {
   return (
     <>
       <Helmet>
-        <title>Events — Design Publishing</title>
+        <title>Events — Dealings Publishing</title>
         <meta
           name="description"
-          content="Browse conferences, webinars, workshops, and seminars attended or organized by Design Publishing."
+          content="Browse conferences, webinars, workshops, and seminars attended or organized by Dealings Publishing."
         />
       </Helmet>
 

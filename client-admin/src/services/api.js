@@ -223,4 +223,31 @@ export const partnershipAPI = {
   togglePublish: (id) => api.patch(`/partnerships/${id}/publish`),
 }
 
+// ════════════════════════════════
+// EVENT REGISTRATIONS
+// ════════════════════════════════
+export const registrationAPI = {
+  getAll: (params) => api.get('/registrations', { params }),
+  getStats: (params) => api.get('/registrations/stats', { params }),
+  getById: (id) => api.get(`/registrations/${id}`),
+
+  // decision: 'accept' | 'deny'
+  review: (id, data) => api.patch(`/registrations/${id}/review`, data),
+
+  // decision: 'confirm' | 'reject'
+  reviewPayment: (id, data) => api.patch(`/registrations/${id}/payment`, data),
+
+  resendTicket: (id) => api.post(`/registrations/${id}/resend-ticket`),
+
+  // Attendance recap — name, affiliation, article title, ticket number
+  getRecap: (params) => api.get('/registrations/recap', { params }),
+}
+
+// ════════════════════════════════
+// PARTICIPANT ACCOUNTS (read-only)
+// ════════════════════════════════
+export const participantAPI = {
+  getAll: (params) => api.get('/participants', { params }),
+}
+
 export default api

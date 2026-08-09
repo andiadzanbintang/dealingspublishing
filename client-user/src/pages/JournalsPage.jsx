@@ -159,7 +159,7 @@ export default function JournalsPage() {
   return (
     <>
       <Helmet>
-        <title>Journals — Design Publishing</title>
+        <title>Journals — Dealings Publishing</title>
         <meta
           name="description"
           content="Explore peer-reviewed journals and research publications across multiple disciplines."

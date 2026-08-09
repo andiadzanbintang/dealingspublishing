@@ -44,10 +44,10 @@ export default function UnsubscribePage() {
   return (
     <>
       <Helmet>
-        <title>Unsubscribe — Design Publishing</title>
+        <title>Unsubscribe — Dealings Publishing</title>
         <meta
           name="description"
-          content="Unsubscribe from Design Publishing email updates."
+          content="Unsubscribe from Dealings Publishing email updates."
         />
       </Helmet>
 

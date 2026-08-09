@@ -9,10 +9,10 @@ export default function PrivacyPage() {
   return (
     <>
       <Helmet>
-        <title>Privacy Policy — Design Publishing</title>
+        <title>Privacy Policy — Dealings Publishing</title>
         <meta
           name="description"
-          content="Read the Design Publishing privacy policy and learn how we collect, use, and protect your information."
+          content="Read the Dealings Publishing privacy policy and learn how we collect, use, and protect your information."
         />
       </Helmet>
 
@@ -34,7 +34,7 @@ export default function PrivacyPage() {
                 Your privacy matters
               </h2>
               <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
-                This policy explains how Design Publishing handles information
+                This policy explains how Dealings Publishing handles information
                 submitted through our website, including newsletter subscriptions,
                 research inquiries, and general site usage.
               </p>

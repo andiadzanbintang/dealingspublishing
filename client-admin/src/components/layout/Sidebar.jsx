@@ -1,5 +1,5 @@
 // src/components/layout/Sidebar.jsx
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   BookOpen,
@@ -7,6 +7,7 @@ import {
   Tags,
   Newspaper,
   CalendarDays,
+  ClipboardCheck,
   Users,
   Settings,
   Bot,
@@ -25,6 +26,7 @@ const navItems = [
   { label: 'Topics', path: '/topics', icon: Tags },
   { label: 'News', path: '/news', icon: Newspaper },
   { label: 'Events', path: '/events', icon: CalendarDays },
+  { label: 'Registrations', path: '/registrations', icon: ClipboardCheck },
   { label: 'Subscribers', path: '/subscribers', icon: Users },
   { label: 'AI Config', path: '/ai-config', icon: Bot },
   { label: 'Settings', path: '/settings', icon: Settings },

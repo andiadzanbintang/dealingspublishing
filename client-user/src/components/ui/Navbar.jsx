@@ -1,9 +1,19 @@
 // src/components/layout/Navbar.jsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { Menu, X, Search, MessageCircle } from 'lucide-react'
+import {
+  Menu,
+  X,
+  Search,
+  MessageCircle,
+  User,
+  Ticket,
+  LogOut,
+  ChevronDown,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useParticipantAuth } from '@/hooks/useParticipantAuth'
 
 const navLinks = [
   { name: 'Home', path: '/' },
@@ -18,7 +28,11 @@ const navLinks = [
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [isAccountOpen, setIsAccountOpen] = useState(false)
+  const accountRef = useRef(null)
   const location = useLocation()
+
+  const { isAuthenticated, participant, logout } = useParticipantAuth()
 
   // Track scroll for navbar style change
   useEffect(() => {
@@ -27,10 +41,22 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Close mobile menu on route change
+  // Close menus on route change
   useEffect(() => {
     setIsMobileOpen(false)
+    setIsAccountOpen(false)
   }, [location.pathname])
+
+  // Close the account dropdown when clicking outside
+  useEffect(() => {
+    const handleClick = (event) => {
+      if (accountRef.current && !accountRef.current.contains(event.target)) {
+        setIsAccountOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -39,13 +65,14 @@ export default function Navbar() {
   }, [isMobileOpen])
 
   const isHomePage = location.pathname === '/'
+  const solid = isScrolled || !isHomePage
 
   return (
     <>
       <header
         className={cn(
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-          isScrolled || !isHomePage
+          solid
             ? 'bg-white/90 backdrop-blur-xl shadow-sm border-b border-neutral-100'
             : 'bg-transparent'
         )}
@@ -54,9 +81,6 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* ═══ Logo ═══ */}
             <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-              {/* <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">D</span>
-              </div> */}
               <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-white/90 shadow-sm">
                 <img
                   src="/dealingsPublishingLogo.svg"
@@ -67,9 +91,7 @@ export default function Navbar() {
               <span
                 className={cn(
                   'text-xl font-bold tracking-tight transition-colors',
-                  isScrolled || !isHomePage
-                    ? 'text-neutral-900'
-                    : 'text-white'
+                  solid ? 'text-neutral-900' : 'text-white'
                 )}
               >
                 Dealings Publishing
@@ -77,7 +99,7 @@ export default function Navbar() {
             </Link>
 
             {/* ═══ Desktop Nav Links ═══ */}
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-1">
               {navLinks.map((link) => (
                 <NavLink
                   key={link.path}
@@ -86,10 +108,10 @@ export default function Navbar() {
                     cn(
                       'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                       isActive
-                        ? isScrolled || !isHomePage
+                        ? solid
                           ? 'text-primary-600 bg-primary-50'
                           : 'text-white bg-white/20'
-                        : isScrolled || !isHomePage
+                        : solid
                         ? 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
                         : 'text-white/80 hover:text-white hover:bg-white/10'
                     )
@@ -105,7 +127,7 @@ export default function Navbar() {
               <button
                 className={cn(
                   'p-2.5 rounded-xl transition-all duration-200',
-                  isScrolled || !isHomePage
+                  solid
                     ? 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100'
                     : 'text-white/80 hover:text-white hover:bg-white/10'
                 )}
@@ -114,11 +136,84 @@ export default function Navbar() {
                 <Search className="w-5 h-5" />
               </button>
 
+              {/* Participant account */}
+              {isAuthenticated ? (
+                <div className="relative hidden sm:block" ref={accountRef}>
+                  <button
+                    onClick={() => setIsAccountOpen((open) => !open)}
+                    className={cn(
+                      'flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                      solid
+                        ? 'text-neutral-700 hover:bg-neutral-100'
+                        : 'text-white/90 hover:bg-white/10'
+                    )}
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-primary-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      {(participant?.name || '?').charAt(0).toUpperCase()}
+                    </span>
+                    <span className="max-w-[110px] truncate">
+                      {participant?.name?.split(' ')[0]}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                  </button>
+
+                  <AnimatePresence>
+                    {isAccountOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-lg border border-neutral-100 overflow-hidden"
+                      >
+                        <div className="px-4 py-3 border-b border-neutral-100">
+                          <p className="text-sm font-medium text-neutral-900 truncate">
+                            {participant?.name}
+                          </p>
+                          <p className="text-xs text-neutral-500 truncate">
+                            {participant?.email}
+                          </p>
+                        </div>
+
+                        <Link
+                          to="/my/registrations"
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+                        >
+                          <Ticket className="w-4 h-4 text-neutral-400" />
+                          My Registrations
+                        </Link>
+
+                        <button
+                          onClick={logout}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors border-t border-neutral-100"
+                        >
+                          <LogOut className="w-4 h-4 text-neutral-400" />
+                          Sign out
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <Link
+                  to="/account/login"
+                  className={cn(
+                    'hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                    solid
+                      ? 'text-neutral-700 hover:bg-neutral-100'
+                      : 'text-white/90 hover:bg-white/10'
+                  )}
+                >
+                  <User className="w-4 h-4" />
+                  Sign in
+                </Link>
+              )}
+
               {/* Mobile menu toggle */}
               <button
                 className={cn(
-                  'md:hidden p-2.5 rounded-xl transition-all duration-200',
-                  isScrolled || !isHomePage
+                  'lg:hidden p-2.5 rounded-xl transition-all duration-200',
+                  solid
                     ? 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100'
                     : 'text-white/80 hover:text-white hover:bg-white/10'
                 )}
@@ -144,7 +239,7 @@ export default function Navbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 md:hidden"
+            className="fixed inset-0 z-40 lg:hidden"
           >
             {/* Backdrop */}
             <div
@@ -191,6 +286,53 @@ export default function Navbar() {
                         {link.name}
                       </NavLink>
                     ))}
+                  </div>
+
+                  {/* Participant account */}
+                  <div className="mt-6 pt-6 border-t border-neutral-100">
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-4 pb-3">
+                          <p className="text-sm font-medium text-neutral-900 truncate">
+                            {participant?.name}
+                          </p>
+                          <p className="text-xs text-neutral-500 truncate">
+                            {participant?.email}
+                          </p>
+                        </div>
+                        <Link
+                          to="/my/registrations"
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-neutral-600 hover:bg-neutral-50"
+                        >
+                          <Ticket className="w-4 h-4 text-neutral-400" />
+                          My Registrations
+                        </Link>
+                        <button
+                          onClick={logout}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-neutral-600 hover:bg-neutral-50"
+                        >
+                          <LogOut className="w-4 h-4 text-neutral-400" />
+                          Sign out
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <Link
+                          to="/account/login"
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-neutral-600 hover:bg-neutral-50"
+                        >
+                          <User className="w-4 h-4 text-neutral-400" />
+                          Sign in
+                        </Link>
+                        <Link
+                          to="/account/register"
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-primary-600 hover:bg-primary-50"
+                        >
+                          <Ticket className="w-4 h-4" />
+                          Create participant account
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
 

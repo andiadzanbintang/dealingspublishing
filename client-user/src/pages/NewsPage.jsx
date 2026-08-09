@@ -104,10 +104,10 @@ export default function NewsPage() {
   return (
     <>
       <Helmet>
-        <title>News — Design Publishing</title>
+        <title>News — Dealings Publishing</title>
         <meta
           name="description"
-          content="Stay informed with the latest news and updates from Design Publishing."
+          content="Stay informed with the latest news and updates from Dealings Publishing."
         />
       </Helmet>
 

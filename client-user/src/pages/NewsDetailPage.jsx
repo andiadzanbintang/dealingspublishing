@@ -106,7 +106,7 @@ export default function NewsDetailPage() {
     return (
       <>
         <Helmet>
-          <title>Loading Article — Design Publishing</title>
+          <title>Loading Article — Dealings Publishing</title>
         </Helmet>
 
         <div className="pt-32 pb-20 bg-neutral-50 min-h-screen">
@@ -131,7 +131,7 @@ export default function NewsDetailPage() {
     return (
       <>
         <Helmet>
-          <title>Article Not Found — Design Publishing</title>
+          <title>Article Not Found — Dealings Publishing</title>
         </Helmet>
 
         <div className="min-h-screen flex items-center justify-center">
@@ -162,7 +162,7 @@ export default function NewsDetailPage() {
   return (
     <>
       <Helmet>
-        <title>{article.title} — Design Publishing</title>
+        <title>{article.title} — Dealings Publishing</title>
         <meta name="description" content={article.excerpt || article.title} />
 
         <meta property="og:title" content={article.title} />

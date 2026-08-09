@@ -1,12 +1,18 @@
 // src/controllers/event.controller.js
 import Event from '../models/Event.js'
+import EventRegistration from '../models/EventRegistration.js'
 import ActivityLog from '../models/ActivityLog.js'
 import { AppError } from '../utils/AppError.js'
 import { catchAsync } from '../utils/catchAsync.js'
 import { APIFeatures } from '../utils/apiFeatures.js'
 import { cacheGet, cacheSet, cacheDel } from '../config/redis.js'
 
-// ═══ PUBLIC ═══ 
+// Bank details live inside the event document but must never reach an
+// anonymous visitor — they are only revealed to a participant whose abstract
+// has been accepted (see registration.controller.js).
+const PUBLIC_EXCLUDE = '-registration.bank'
+
+// ═══ PUBLIC ═══
 
 export const getAllPublic = catchAsync(async (req, res) => {
   const query = req.sanitizedQuery || req.query
@@ -23,7 +29,7 @@ export const getAllPublic = catchAsync(async (req, res) => {
     filter.eventDate = { $lt: new Date() }
   }
 
-  const features = new APIFeatures(Event.find(filter), query)
+  const features = new APIFeatures(Event.find(filter).select(PUBLIC_EXCLUDE), query)
     .search(['title', 'description', 'tags'])
     .sort()
     .paginate()
@@ -51,6 +57,7 @@ export const getUpcoming = catchAsync(async (req, res) => {
     isPublished: true,
     eventDate: { $gte: new Date() },
   })
+    .select(PUBLIC_EXCLUDE)
     .sort('eventDate')
     .limit(6)
 
@@ -60,7 +67,9 @@ export const getUpcoming = catchAsync(async (req, res) => {
 })
 
 export const getBySlug = catchAsync(async (req, res, next) => {
-  const event = await Event.findOne({ slug: req.params.slug, isPublished: true })
+  const event = await Event.findOne({ slug: req.params.slug, isPublished: true }).select(
+    PUBLIC_EXCLUDE
+  )
   if (!event) return next(new AppError('Event not found', 404))
   res.status(200).json({ status: 'success', data: event })
 })
@@ -146,6 +155,16 @@ export const update = catchAsync(async (req, res, next) => {
 })
 
 export const remove = catchAsync(async (req, res, next) => {
+  const registrationCount = await EventRegistration.countDocuments({ event: req.params.id })
+  if (registrationCount > 0) {
+    return next(
+      new AppError(
+        `This event has ${registrationCount} registration(s). Unpublish it instead of deleting, so participant records and tickets are preserved.`,
+        400
+      )
+    )
+  }
+
   const event = await Event.findByIdAndDelete(req.params.id)
   if (!event) return next(new AppError('Event not found', 404))
 

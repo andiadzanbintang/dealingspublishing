@@ -13,6 +13,8 @@ import NewsManagePage from '@/pages/NewsManagePage'
 import NewsFormPage from '@/pages/NewsFormPage'
 import EventsManagePage from '@/pages/EventsManagePage'
 import EventFormPage from '@/pages/EventFormPage'
+import RegistrationsManagePage from '@/pages/RegistrationsManagePage'
+import RegistrationDetailPage from '@/pages/RegistrationDetailPage'
 import SubscribersPage from '@/pages/SubscribersPage'
 import SettingsPage from '@/pages/SettingsPage'
 import AIConfigPage from '@/pages/AIConfigPage'
@@ -46,6 +48,9 @@ export default function App() {
             <Route path="/events" element={<EventsManagePage />} />
             <Route path="/events/new" element={<EventFormPage />} />
             <Route path="/events/edit/:id" element={<EventFormPage />} />
+
+            <Route path="/registrations" element={<RegistrationsManagePage />} />
+            <Route path="/registrations/:id" element={<RegistrationDetailPage />} />
 
             <Route path="/subscribers" element={<SubscribersPage />} />
             <Route path="/settings" element={<SettingsPage />} />

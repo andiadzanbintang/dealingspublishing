@@ -1,12 +1,66 @@
 // src/pages/EventFormPage.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Plus, Trash2, Users } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import ImageUpload from '@/components/ui/ImageUpload'
 import { slugify } from '@/lib/utils'
 import { eventAPI, uploadAPI } from '@/services/api'
+
+const inputClass =
+  'w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
+const labelClass = 'block text-sm font-medium text-neutral-700 mb-1.5'
+
+const FEE_COMBOS = [
+  { role: 'presenter', mode: 'offline', label: 'Presenter — Offline attendance' },
+  { role: 'presenter', mode: 'online', label: 'Presenter — Online attendance' },
+  { role: 'participant', mode: 'offline', label: 'Participant — Offline attendance' },
+  { role: 'participant', mode: 'online', label: 'Participant — Online attendance' },
+]
+
+const emptyRegistration = () => ({
+  enabled: false,
+  ctaLabel: 'Register Event',
+  opensAt: '',
+  closesAt: '',
+  requireManuscript: true,
+  requireAbstractFile: true,
+  fees: FEE_COMBOS.map((combo) => ({ ...combo, amountIdr: 0, amountUsd: 0 })),
+  outputTypes: [
+    { value: 'book-series-scopus', label: 'Book Series (Scopus indexed)' },
+    { value: 'journal-nasional-sinta', label: 'National Journal (SINTA accredited)' },
+  ],
+  keywordsMin: 3,
+  keywordsMax: 5,
+  maxAbstractSizeMb: 15,
+  maxFullPaperSizeMb: 25,
+  abstractDeadline: '',
+  fullPaperDeadline: '',
+  paymentMethods: {
+    manual: true,
+    gateway: false,
+    gatewayNote:
+      'Online payment gateway is still awaiting licensing approval. Please use manual bank transfer for now.',
+  },
+  bank: {
+    accountNumber: '',
+    accountName: '',
+    bankName: '',
+    swiftCode: '',
+    branch: '',
+  },
+  ticketPrefix: '',
+  invoicePrefix: 'INV',
+  whatsappGroupUrl: '',
+  fullPaperUploadUrl: '',
+  contactEmail: '',
+  contactWhatsapp: '',
+  instructions: '',
+})
+
+const toDateInput = (value) =>
+  value ? new Date(value).toISOString().split('T')[0] : ''
 
 export default function EventFormPage() {
   const { id } = useParams()
@@ -18,6 +72,7 @@ export default function EventFormPage() {
   const [error, setError] = useState('')
   const [content, setContent] = useState('')
   const [coverImage, setCoverImage] = useState(null)
+  const [registration, setRegistration] = useState(emptyRegistration())
 
   const {
     register,
@@ -68,18 +123,8 @@ export default function EventFormPage() {
         setValue('title', event.title || '')
         setValue('slug', event.slug || '')
         setValue('description', event.description || '')
-        setValue(
-          'eventDate',
-          event.eventDate
-            ? new Date(event.eventDate).toISOString().split('T')[0]
-            : ''
-        )
-        setValue(
-          'endDate',
-          event.endDate
-            ? new Date(event.endDate).toISOString().split('T')[0]
-            : ''
-        )
+        setValue('eventDate', toDateInput(event.eventDate))
+        setValue('endDate', toDateInput(event.endDate))
         setValue('location', event.location || '')
         setValue('locationType', event.locationType || 'in-person')
         setValue('eventType', event.eventType || 'conference')
@@ -89,6 +134,33 @@ export default function EventFormPage() {
 
         setContent(event.content || '')
         setCoverImage(event.coverImage || null)
+
+        const defaults = emptyRegistration()
+        const saved = event.registration || {}
+
+        setRegistration({
+          ...defaults,
+          ...saved,
+          opensAt: toDateInput(saved.opensAt),
+          closesAt: toDateInput(saved.closesAt),
+          abstractDeadline: toDateInput(saved.abstractDeadline),
+          fullPaperDeadline: toDateInput(saved.fullPaperDeadline),
+          fees:
+            saved.fees?.length > 0
+              ? FEE_COMBOS.map((combo) => {
+                  const match = saved.fees.find(
+                    (f) => f.role === combo.role && f.mode === combo.mode
+                  )
+                  return match
+                    ? { ...combo, ...match, label: match.label || combo.label }
+                    : { ...combo, amountIdr: 0, amountUsd: 0 }
+                })
+              : defaults.fees,
+          outputTypes: saved.outputTypes?.length > 0 ? saved.outputTypes : defaults.outputTypes,
+          paymentMethods: { ...defaults.paymentMethods, ...(saved.paymentMethods || {}) },
+          bank: { ...defaults.bank, ...(saved.bank || {}) },
+          ticketPrefix: saved.ticketPrefix || '',
+        })
       } catch (err) {
         console.error('Failed to fetch event:', err)
         setError(
@@ -103,40 +175,106 @@ export default function EventFormPage() {
     fetchEvent()
   }, [isEdit, id, setValue])
 
+  const setReg = (key, value) => setRegistration((prev) => ({ ...prev, [key]: value }))
+
+  const setNested = (group, key, value) =>
+    setRegistration((prev) => ({ ...prev, [group]: { ...prev[group], [key]: value } }))
+
+  const setFee = (index, key, value) =>
+    setRegistration((prev) => ({
+      ...prev,
+      fees: prev.fees.map((fee, i) => (i === index ? { ...fee, [key]: value } : fee)),
+    }))
+
   const uploadCoverImageIfNeeded = async () => {
     if (!coverImage) return ''
 
-    // Existing backend image URL
     if (typeof coverImage === 'string') {
       return coverImage
     }
 
-    // New File object from ImageUpload
     if (coverImage instanceof File) {
       const formData = new FormData()
       formData.append('image', coverImage)
 
-      const response = await uploadAPI.uploadImage(
-        formData,
-        'researchhub/events'
-      )
-
+      const response = await uploadAPI.uploadImage(formData, 'researchhub/events')
       return response?.data?.url || ''
     }
 
     return ''
   }
 
+  const buildRegistrationPayload = (slug) => ({
+    enabled: Boolean(registration.enabled),
+    ctaLabel: registration.ctaLabel || 'Register Event',
+    opensAt: registration.opensAt || null,
+    closesAt: registration.closesAt || null,
+    requireManuscript: Boolean(registration.requireManuscript),
+    requireAbstractFile: Boolean(registration.requireAbstractFile),
+    fees: registration.fees.map((fee) => ({
+      role: fee.role,
+      mode: fee.mode,
+      label: fee.label || '',
+      amountIdr: Number(fee.amountIdr) || 0,
+      amountUsd: Number(fee.amountUsd) || 0,
+    })),
+    outputTypes: registration.outputTypes
+      .filter((option) => option.value?.trim() && option.label?.trim())
+      .map((option) => ({ value: option.value.trim(), label: option.label.trim() })),
+    keywordsMin: Number(registration.keywordsMin) || 0,
+    keywordsMax: Number(registration.keywordsMax) || 5,
+    maxAbstractSizeMb: Number(registration.maxAbstractSizeMb) || 15,
+    maxFullPaperSizeMb: Number(registration.maxFullPaperSizeMb) || 25,
+    abstractDeadline: registration.abstractDeadline || null,
+    fullPaperDeadline: registration.fullPaperDeadline || null,
+    paymentMethods: {
+      manual: Boolean(registration.paymentMethods.manual),
+      gateway: Boolean(registration.paymentMethods.gateway),
+      gatewayNote: registration.paymentMethods.gatewayNote || '',
+    },
+    bank: { ...registration.bank },
+    ticketPrefix: (registration.ticketPrefix || slug || 'REG')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 12),
+    invoicePrefix: registration.invoicePrefix || 'INV',
+    whatsappGroupUrl: registration.whatsappGroupUrl || '',
+    fullPaperUploadUrl: registration.fullPaperUploadUrl || '',
+    contactEmail: registration.contactEmail || '',
+    contactWhatsapp: registration.contactWhatsapp || '',
+    instructions: registration.instructions || '',
+  })
+
   const onSubmit = async (data) => {
     setLoading(true)
     setError('')
 
     try {
+      if (registration.enabled) {
+        const missingFee = registration.fees.some(
+          (fee) => !Number(fee.amountIdr) && !Number(fee.amountUsd)
+        )
+        if (missingFee) {
+          setError(
+            'Registration is enabled but at least one fee is still zero. Fill in all four fee rows.'
+          )
+          setLoading(false)
+          return
+        }
+
+        if (registration.paymentMethods.manual && !registration.bank.accountNumber) {
+          setError('Manual transfer is enabled — please fill in the bank account details.')
+          setLoading(false)
+          return
+        }
+      }
+
       const uploadedCoverImage = await uploadCoverImageIfNeeded()
+      const slug = data.slug?.trim() || slugify(data.title || '')
 
       const payload = {
         title: data.title?.trim(),
-        slug: data.slug?.trim() || slugify(data.title || ''),
+        slug,
         description: data.description || '',
         content,
         coverImage: uploadedCoverImage,
@@ -148,6 +286,7 @@ export default function EventFormPage() {
         externalUrl: data.externalUrl || '',
         isPublished: Boolean(data.isPublished),
         isFeatured: Boolean(data.isFeatured),
+        registration: buildRegistrationPayload(slug),
       }
 
       if (isEdit) {
@@ -211,63 +350,55 @@ export default function EventFormPage() {
           {/* Left */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-xl border border-neutral-200 p-6 space-y-5">
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Event Details
-              </h2>
+              <h2 className="text-lg font-semibold text-neutral-900">Event Details</h2>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                <label className={labelClass}>
                   Title <span className="text-danger-500">*</span>
                 </label>
                 <input
                   {...register('title', { required: 'Title is required' })}
                   placeholder="Event title"
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={inputClass}
                 />
                 {errors.title && (
-                  <p className="mt-1 text-xs text-danger-500">
-                    {errors.title.message}
-                  </p>
+                  <p className="mt-1 text-xs text-danger-500">{errors.title.message}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                <label className={labelClass}>
                   Slug <span className="text-danger-500">*</span>
                 </label>
                 <input
                   {...register('slug', { required: 'Slug is required' })}
                   placeholder="auto-generated"
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={inputClass}
                 />
                 {errors.slug && (
-                  <p className="mt-1 text-xs text-danger-500">
-                    {errors.slug.message}
-                  </p>
+                  <p className="mt-1 text-xs text-danger-500">{errors.slug.message}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  Short Description
-                </label>
+                <label className={labelClass}>Short Description</label>
                 <textarea
                   {...register('description')}
                   rows={3}
                   placeholder="Brief event description..."
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  className={`${inputClass} resize-none`}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  <label className={labelClass}>
                     Event Date <span className="text-danger-500">*</span>
                   </label>
                   <input
                     type="date"
                     {...register('eventDate', { required: 'Date is required' })}
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className={inputClass}
                   />
                   {errors.eventDate && (
                     <p className="mt-1 text-xs text-danger-500">
@@ -276,67 +407,447 @@ export default function EventFormPage() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    {...register('endDate')}
-                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
+                  <label className={labelClass}>End Date</label>
+                  <input type="date" {...register('endDate')} className={inputClass} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  Location
-                </label>
+                <label className={labelClass}>Location</label>
                 <input
                   {...register('location')}
                   placeholder="e.g. Singapore / Online"
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  External URL
-                </label>
+                <label className={labelClass}>External URL</label>
                 <input
                   {...register('externalUrl')}
                   placeholder="https://..."
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             <div className="bg-white rounded-xl border border-neutral-200 p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Full Description
-              </h2>
+              <h2 className="text-lg font-semibold text-neutral-900">Full Description</h2>
               <RichTextEditor
                 content={content}
                 onChange={setContent}
                 placeholder="Write full event description..."
               />
             </div>
+
+            {/* ═══════════════════════════════════════ */}
+            {/* REGISTRATION                             */}
+            {/* ═══════════════════════════════════════ */}
+            <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+              <div className="p-6 border-b border-neutral-100 flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-neutral-400" />
+                    Registration
+                  </h2>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    Turn this on to give the event its own participant registration form,
+                    review queue, payment step and ticketing.
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-3 flex-shrink-0 cursor-pointer">
+                  <span className="text-sm font-medium text-neutral-700">
+                    {registration.enabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={registration.enabled}
+                    onChange={(e) => setReg('enabled', e.target.checked)}
+                    className="w-5 h-5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  />
+                </label>
+              </div>
+
+              {registration.enabled && (
+                <div className="p-6 space-y-8">
+                  {/* Basics */}
+                  <section className="space-y-4">
+                    <SectionTitle>Basics</SectionTitle>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Button label</label>
+                        <input
+                          value={registration.ctaLabel}
+                          onChange={(e) => setReg('ctaLabel', e.target.value)}
+                          placeholder="Register Event"
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Ticket prefix</label>
+                        <input
+                          value={registration.ticketPrefix}
+                          onChange={(e) => setReg('ticketPrefix', e.target.value)}
+                          placeholder="ICUCE26"
+                          className={inputClass}
+                        />
+                        <p className="mt-1 text-xs text-neutral-400">
+                          Used for codes like ICUCE26-PR-OFF-0001.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Registration opens</label>
+                        <input
+                          type="date"
+                          value={registration.opensAt}
+                          onChange={(e) => setReg('opensAt', e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Registration closes</label>
+                        <input
+                          type="date"
+                          value={registration.closesAt}
+                          onChange={(e) => setReg('closesAt', e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Abstract deadline</label>
+                        <input
+                          type="date"
+                          value={registration.abstractDeadline}
+                          onChange={(e) => setReg('abstractDeadline', e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Full paper deadline</label>
+                        <input
+                          type="date"
+                          value={registration.fullPaperDeadline}
+                          onChange={(e) => setReg('fullPaperDeadline', e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Instructions shown on the event page</label>
+                      <textarea
+                        rows={3}
+                        value={registration.instructions}
+                        onChange={(e) => setReg('instructions', e.target.value)}
+                        placeholder="Submit your abstract first…"
+                        className={`${inputClass} resize-none`}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-6">
+                      <Toggle
+                        label="Require manuscript section"
+                        checked={registration.requireManuscript}
+                        onChange={(v) => setReg('requireManuscript', v)}
+                      />
+                      <Toggle
+                        label="Require abstract file upload"
+                        checked={registration.requireAbstractFile}
+                        onChange={(v) => setReg('requireAbstractFile', v)}
+                      />
+                    </div>
+                  </section>
+
+                  {/* Fees */}
+                  <section className="space-y-4">
+                    <SectionTitle>Registration fees</SectionTitle>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs uppercase tracking-wider text-neutral-400">
+                            <th className="pb-2 pr-4 font-medium">Attendance</th>
+                            <th className="pb-2 pr-4 font-medium">Label</th>
+                            <th className="pb-2 pr-4 font-medium">Amount (IDR)</th>
+                            <th className="pb-2 font-medium">Amount (USD)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {registration.fees.map((fee, index) => (
+                            <tr key={`${fee.role}-${fee.mode}`} className="border-t border-neutral-100">
+                              <td className="py-3 pr-4 capitalize text-neutral-700 whitespace-nowrap">
+                                {fee.role} · {fee.mode}
+                              </td>
+                              <td className="py-3 pr-4">
+                                <input
+                                  value={fee.label || ''}
+                                  onChange={(e) => setFee(index, 'label', e.target.value)}
+                                  placeholder="Shown to participants"
+                                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                />
+                              </td>
+                              <td className="py-3 pr-4">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={fee.amountIdr}
+                                  onChange={(e) => setFee(index, 'amountIdr', e.target.value)}
+                                  className="w-36 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                />
+                              </td>
+                              <td className="py-3">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={fee.amountUsd}
+                                  onChange={(e) => setFee(index, 'amountUsd', e.target.value)}
+                                  className="w-28 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  {/* Output types */}
+                  <section className="space-y-4">
+                    <SectionTitle>Publication output options</SectionTitle>
+
+                    <div className="space-y-2">
+                      {registration.outputTypes.map((option, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <input
+                            value={option.value}
+                            onChange={(e) =>
+                              setRegistration((prev) => ({
+                                ...prev,
+                                outputTypes: prev.outputTypes.map((o, i) =>
+                                  i === index ? { ...o, value: e.target.value } : o
+                                ),
+                              }))
+                            }
+                            placeholder="value-slug"
+                            className="w-52 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                          <input
+                            value={option.label}
+                            onChange={(e) =>
+                              setRegistration((prev) => ({
+                                ...prev,
+                                outputTypes: prev.outputTypes.map((o, i) =>
+                                  i === index ? { ...o, label: e.target.value } : o
+                                ),
+                              }))
+                            }
+                            placeholder="Label shown to participants"
+                            className="flex-1 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setRegistration((prev) => ({
+                                ...prev,
+                                outputTypes: prev.outputTypes.filter((_, i) => i !== index),
+                              }))
+                            }
+                            className="p-2 rounded-lg text-neutral-400 hover:text-danger-600 hover:bg-danger-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRegistration((prev) => ({
+                          ...prev,
+                          outputTypes: [...prev.outputTypes, { value: '', label: '' }],
+                        }))
+                      }
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add option
+                    </button>
+                  </section>
+
+                  {/* Limits */}
+                  <section className="space-y-4">
+                    <SectionTitle>Form limits</SectionTitle>
+
+                    <div className="grid sm:grid-cols-4 gap-4">
+                      <NumberField
+                        label="Min keywords"
+                        value={registration.keywordsMin}
+                        onChange={(v) => setReg('keywordsMin', v)}
+                      />
+                      <NumberField
+                        label="Max keywords"
+                        value={registration.keywordsMax}
+                        onChange={(v) => setReg('keywordsMax', v)}
+                      />
+                      <NumberField
+                        label="Abstract max (MB)"
+                        value={registration.maxAbstractSizeMb}
+                        onChange={(v) => setReg('maxAbstractSizeMb', v)}
+                      />
+                      <NumberField
+                        label="Full paper max (MB)"
+                        value={registration.maxFullPaperSizeMb}
+                        onChange={(v) => setReg('maxFullPaperSizeMb', v)}
+                      />
+                    </div>
+                  </section>
+
+                  {/* Payment */}
+                  <section className="space-y-4">
+                    <SectionTitle>Payment</SectionTitle>
+
+                    <div className="flex flex-wrap gap-6">
+                      <Toggle
+                        label="Manual bank transfer"
+                        checked={registration.paymentMethods.manual}
+                        onChange={(v) => setNested('paymentMethods', 'manual', v)}
+                      />
+                      <Toggle
+                        label="Payment gateway"
+                        checked={registration.paymentMethods.gateway}
+                        onChange={(v) => setNested('paymentMethods', 'gateway', v)}
+                      />
+                    </div>
+
+                    {!registration.paymentMethods.gateway && (
+                      <div>
+                        <label className={labelClass}>
+                          Message shown on the disabled gateway option
+                        </label>
+                        <input
+                          value={registration.paymentMethods.gatewayNote}
+                          onChange={(e) =>
+                            setNested('paymentMethods', 'gatewayNote', e.target.value)
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Bank name</label>
+                        <input
+                          value={registration.bank.bankName}
+                          onChange={(e) => setNested('bank', 'bankName', e.target.value)}
+                          placeholder="Bank Syariah Indonesia (BSI)"
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Account number</label>
+                        <input
+                          value={registration.bank.accountNumber}
+                          onChange={(e) => setNested('bank', 'accountNumber', e.target.value)}
+                          placeholder="7339645897"
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Account name</label>
+                        <input
+                          value={registration.bank.accountName}
+                          onChange={(e) => setNested('bank', 'accountName', e.target.value)}
+                          placeholder="FAKULTAS FISIPOL UIR"
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>SWIFT / BIC</label>
+                        <input
+                          value={registration.bank.swiftCode}
+                          onChange={(e) => setNested('bank', 'swiftCode', e.target.value)}
+                          placeholder="For international transfers"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-neutral-400">
+                      Bank details are never shown publicly — a participant only sees them
+                      after their abstract has been accepted.
+                    </p>
+                  </section>
+
+                  {/* Post-payment links */}
+                  <section className="space-y-4">
+                    <SectionTitle>Links sent after payment is confirmed</SectionTitle>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>WhatsApp group link</label>
+                        <input
+                          value={registration.whatsappGroupUrl}
+                          onChange={(e) => setReg('whatsappGroupUrl', e.target.value)}
+                          placeholder="https://chat.whatsapp.com/..."
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>External full paper upload link</label>
+                        <input
+                          value={registration.fullPaperUploadUrl}
+                          onChange={(e) => setReg('fullPaperUploadUrl', e.target.value)}
+                          placeholder="Leave empty to use the built-in upload"
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Contact email</label>
+                        <input
+                          value={registration.contactEmail}
+                          onChange={(e) => setReg('contactEmail', e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Contact WhatsApp</label>
+                        <input
+                          value={registration.contactWhatsapp}
+                          onChange={(e) => setReg('contactWhatsapp', e.target.value)}
+                          placeholder="+6281234567890"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right */}
           <div className="space-y-6">
             <div className="bg-white rounded-xl border border-neutral-200 p-6 space-y-5">
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Settings
-              </h2>
+              <h2 className="text-lg font-semibold text-neutral-900">Settings</h2>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  Event Type
-                </label>
-                <select
-                  {...register('eventType')}
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
+                <label className={labelClass}>Event Type</label>
+                <select {...register('eventType')} className={inputClass}>
                   <option value="conference">Conference</option>
                   <option value="webinar">Webinar</option>
                   <option value="workshop">Workshop</option>
@@ -345,13 +856,8 @@ export default function EventFormPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  Location Type
-                </label>
-                <select
-                  {...register('locationType')}
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
+                <label className={labelClass}>Location Type</label>
+                <select {...register('locationType')} className={inputClass}>
                   <option value="in-person">In-Person</option>
                   <option value="virtual">Virtual</option>
                   <option value="hybrid">Hybrid</option>
@@ -359,9 +865,7 @@ export default function EventFormPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-neutral-700">
-                  Published
-                </label>
+                <label className="text-sm font-medium text-neutral-700">Published</label>
                 <input
                   type="checkbox"
                   {...register('isPublished')}
@@ -370,9 +874,7 @@ export default function EventFormPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-neutral-700">
-                  Featured
-                </label>
+                <label className="text-sm font-medium text-neutral-700">Featured</label>
                 <input
                   type="checkbox"
                   {...register('isFeatured')}
@@ -391,24 +893,66 @@ export default function EventFormPage() {
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  {loading
-                    ? 'Saving...'
-                    : isEdit
-                      ? 'Update Event'
-                      : 'Create Event'}
+                  {loading ? 'Saving...' : isEdit ? 'Update Event' : 'Create Event'}
                 </button>
               </div>
+
+              {isEdit && registration.enabled && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/registrations?event=${id}`)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 text-sm font-medium rounded-xl transition-colors"
+                >
+                  <Users className="w-4 h-4" />
+                  View registrations
+                </button>
+              )}
             </div>
 
             <div className="bg-white rounded-xl border border-neutral-200 p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Cover Image
-              </h2>
+              <h2 className="text-lg font-semibold text-neutral-900">Cover Image</h2>
               <ImageUpload value={coverImage} onChange={setCoverImage} />
             </div>
           </div>
         </div>
       </form>
+    </div>
+  )
+}
+
+function SectionTitle({ children }) {
+  return (
+    <h3 className="text-xs uppercase tracking-wider text-neutral-400 font-medium">
+      {children}
+    </h3>
+  )
+}
+
+function Toggle({ label, checked, onChange }) {
+  return (
+    <label className="flex items-center gap-2.5 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="w-5 h-5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+      />
+      <span className="text-sm text-neutral-700">{label}</span>
+    </label>
+  )
+}
+
+function NumberField({ label, value, onChange }) {
+  return (
+    <div>
+      <label className={labelClass}>{label}</label>
+      <input
+        type="number"
+        min="0"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={inputClass}
+      />
     </div>
   )
 }
