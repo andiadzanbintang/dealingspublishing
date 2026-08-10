@@ -241,6 +241,16 @@ export const registrationAPI = {
 
   // Attendance recap — name, affiliation, article title, ticket number
   getRecap: (params) => api.get('/registrations/recap', { params }),
+
+  // Files are streamed through the API so the browser receives the correct
+  // Content-Type and the participant's original filename, instead of an
+  // extensionless blob from the CDN.
+  // kind: 'abstract' | 'full-paper' | 'payment-<index>'
+  downloadFile: (id, kind) =>
+    api.get(`/registrations/${id}/download/${kind}`, {
+      responseType: 'blob',
+      timeout: 120000,
+    }),
 }
 
 // ════════════════════════════════
@@ -248,6 +258,27 @@ export const registrationAPI = {
 // ════════════════════════════════
 export const participantAPI = {
   getAll: (params) => api.get('/participants', { params }),
+  getStats: () => api.get('/participants/stats'),
+  getById: (id) => api.get(`/participants/${id}`),
+}
+
+// ════════════════════════════════
+// REVIEWER ACCOUNTS (superadmin only)
+// ════════════════════════════════
+export const reviewerAPI = {
+  getAll: (params) => api.get('/reviewers', { params }),
+  create: (data) => api.post('/reviewers', data),
+  update: (id, data) => api.put(`/reviewers/${id}`, data),
+  resetPassword: (id, data) => api.patch(`/reviewers/${id}/password`, data),
+  delete: (id) => api.delete(`/reviewers/${id}`),
+
+  // Assign reviewers from the Event form side
+  setEventReviewers: (eventId, reviewerIds) =>
+    api.patch(`/reviewers/event/${eventId}`, { reviewerIds }),
+
+  // Events the signed-in account is responsible for.
+  // Superadmin and editor get everything; a reviewer gets their assignment.
+  getMyEvents: () => api.get('/reviewers/me/events'),
 }
 
 export default api

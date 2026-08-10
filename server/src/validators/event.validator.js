@@ -54,6 +54,9 @@ export const registrationConfigSchema = z
     fullPaperUploadUrl: z.string().optional().default(''),
     contactEmail: z.string().optional().default(''),
     contactWhatsapp: z.string().optional().default(''),
+    notifyEmails: z.array(z.string()).optional().default([]),
+    notifyOnSubmission: z.boolean().optional().default(true),
+    notifyOnPayment: z.boolean().optional().default(true),
     instructions: z.string().optional().default(''),
   })
   .partial()

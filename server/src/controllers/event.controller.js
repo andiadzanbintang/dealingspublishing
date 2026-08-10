@@ -6,6 +6,7 @@ import { AppError } from '../utils/AppError.js'
 import { catchAsync } from '../utils/catchAsync.js'
 import { APIFeatures } from '../utils/apiFeatures.js'
 import { cacheGet, cacheSet, cacheDel } from '../config/redis.js'
+import { applyEventScope, assertEventAccess } from '../middleware/eventScope.middleware.js'
 
 // Bank details live inside the event document but must never reach an
 // anonymous visitor — they are only revealed to a participant whose abstract
@@ -79,15 +80,18 @@ export const getBySlug = catchAsync(async (req, res, next) => {
 export const getAllAdmin = catchAsync(async (req, res) => {
   const query = req.sanitizedQuery || req.query
 
+  // Reviewers only ever see the events assigned to them
+  const filter = applyEventScope({}, req.user, '_id')
+
   const features = new APIFeatures(
-    Event.find().populate('createdBy', 'name'),
+    Event.find(filter).populate('createdBy', 'name'),
     query
   )
     .search(['title', 'description'])
     .sort()
     .paginate()
 
-  const total = await Event.countDocuments()
+  const total = await Event.countDocuments(filter)
   const events = await features.query
 
   res.status(200).json({
@@ -102,6 +106,7 @@ export const getAllAdmin = catchAsync(async (req, res) => {
 export const getById = catchAsync(async (req, res, next) => {
   const event = await Event.findById(req.params.id).populate('createdBy', 'name')
   if (!event) return next(new AppError('Event not found', 404))
+  assertEventAccess(req.user, event._id)
   res.status(200).json({ status: 'success', data: event })
 })
 

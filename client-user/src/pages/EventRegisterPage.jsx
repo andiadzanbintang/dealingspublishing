@@ -25,11 +25,25 @@ import { cn, formatDate, formatIDR, formatUSD, formatFileSize } from '@/lib/util
 
 const PHONE_PATTERN = /^\+[1-9]\d{0,3}[\s-]?\d[\d\s-]{5,17}$/
 
-const ACCEPTED_MIME = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-]
+/**
+ * Validate by extension, not by MIME type.
+ *
+ * The browser reports whatever content type the operating system has registered
+ * for that extension, and that registration belongs to whichever app claimed
+ * the file type last. WPS Office, Foxit and older Acrobat installs register
+ * ".pdf" as "application/x-pdf" or "applications/vnd.pdf", and some setups send
+ * "application/octet-stream". A MIME-only check therefore rejects perfectly
+ * good PDFs on those machines while .docx keeps working. The server applies the
+ * same rule.
+ */
+const ACCEPTED_EXTENSIONS = ['pdf', 'doc', 'docx']
+
+const extensionOf = (filename = '') => {
+  const parts = String(filename).split('.')
+  if (parts.length < 2) return ''
+  const candidate = parts.pop().toLowerCase()
+  return /^[a-z0-9]{1,8}$/.test(candidate) ? candidate : ''
+}
 
 const STEPS = [
   { key: 'profile', label: 'Profile', icon: User },
@@ -134,7 +148,7 @@ function DocumentPicker({ file, onChange, maxMb, existingFile }) {
 
     if (!candidate) return
 
-    if (!ACCEPTED_MIME.includes(candidate.type)) {
+    if (!ACCEPTED_EXTENSIONS.includes(extensionOf(candidate.name))) {
       setLocalError('Only Microsoft Word (.doc, .docx) or PDF files are accepted.')
       return
     }

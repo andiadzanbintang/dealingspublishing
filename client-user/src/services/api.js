@@ -165,6 +165,15 @@ export const registrationAPI = {
 
   uploadFullPaper: (id, formData, onUploadProgress) =>
     api.post(`/registrations/me/${id}/full-paper`, formData, uploadConfig(onUploadProgress)),
+
+  // Files are streamed through the API so the browser receives the correct
+  // Content-Type and the original filename, instead of an extensionless blob
+  // from the CDN. kind: 'abstract' | 'full-paper' | 'payment-<index>'
+  downloadFile: (id, kind) =>
+    api.get(`/registrations/me/${id}/download/${kind}`, {
+      responseType: 'blob',
+      timeout: 120000,
+    }),
 }
 
 // ════════════════════════════════

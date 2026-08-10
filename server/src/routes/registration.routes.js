@@ -6,7 +6,11 @@ import {
   protectParticipant,
   optionalParticipant,
 } from '../middleware/participantAuth.middleware.js'
-import { uploadManuscript, uploadPaymentProof } from '../middleware/uploadDocument.js'
+import {
+  uploadManuscript,
+  uploadPaymentProof,
+  withUploadErrors,
+} from '../middleware/uploadDocument.js'
 
 const router = Router()
 
@@ -22,36 +26,41 @@ router.get('/events/:eventIdOrSlug/config', optionalParticipant, ctrl.getEventRe
 router.post(
   '/events/:eventIdOrSlug',
   protectParticipant,
-  uploadManuscript.single('abstractFile'),
+  withUploadErrors(uploadManuscript.single('abstractFile')),
   ctrl.submitRegistration
 )
 
 router.get('/me', protectParticipant, ctrl.getMyRegistrations)
 router.get('/me/:id', protectParticipant, ctrl.getMyRegistration)
 
+// kind: 'abstract' | 'full-paper' | 'payment-<index>'
+router.get('/me/:id/download/:kind', protectParticipant, ctrl.downloadMyFile)
+
 router.post(
   '/me/:id/payment',
   protectParticipant,
-  uploadPaymentProof.single('proofFile'),
+  withUploadErrors(uploadPaymentProof.single('proofFile')),
   ctrl.submitPayment
 )
 
 router.post(
   '/me/:id/full-paper',
   protectParticipant,
-  uploadManuscript.single('fullPaperFile'),
+  withUploadErrors(uploadManuscript.single('fullPaperFile')),
   ctrl.uploadFullPaper
 )
 
 // ═══════════════════════════════════════════════════════════
-// ADMIN
+// ADMIN — superadmin and editor see everything;
+// reviewers are scoped to their assigned events inside the controller.
 // ═══════════════════════════════════════════════════════════
-router.use(protect, restrictTo('superadmin', 'editor'))
+router.use(protect, restrictTo('superadmin', 'editor', 'reviewer'))
 
 router.get('/', ctrl.listRegistrations)
 router.get('/stats', ctrl.getRegistrationStats)
 router.get('/recap', ctrl.getRecap)
 router.get('/:id', ctrl.getRegistration)
+router.get('/:id/download/:kind', ctrl.downloadRegistrationFile)
 router.patch('/:id/review', ctrl.reviewRegistration)
 router.patch('/:id/payment', ctrl.reviewPayment)
 router.post('/:id/resend-ticket', ctrl.resendTicketEmail)

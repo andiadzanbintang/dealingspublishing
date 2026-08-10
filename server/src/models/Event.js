@@ -80,6 +80,15 @@ const registrationConfigSchema = new mongoose.Schema(
     contactEmail: { type: String, default: '' },
     contactWhatsapp: { type: String, default: '' },
 
+    /**
+     * Organiser inboxes that get a heads-up whenever a participant submits or
+     * uploads a payment proof. Reviewers assigned to the event and
+     * ADMIN_NOTIFICATION_EMAIL from the environment are added automatically.
+     */
+    notifyEmails: [{ type: String, trim: true, lowercase: true }],
+    notifyOnSubmission: { type: Boolean, default: true },
+    notifyOnPayment: { type: Boolean, default: true },
+
     instructions: { type: String, default: '' },
   },
   { _id: false }

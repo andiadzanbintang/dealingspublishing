@@ -34,6 +34,11 @@ export const protect = catchAsync(async (req, res, next) => {
     return next(new AppError('User no longer exists.', 401))
   }
 
+  // A superadmin can deactivate a reviewer; that must end their session too
+  if (user.isActive === false) {
+    return next(new AppError('This account has been deactivated.', 403))
+  }
+
   req.user = user
   next()
 })

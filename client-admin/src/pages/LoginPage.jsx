@@ -45,11 +45,11 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">R</span>
+            <span className="text-white font-bold text-2xl">D</span>
           </div>
           <h1 className="text-2xl font-bold text-neutral-900">Welcome back</h1>
           <p className="mt-2 text-sm text-neutral-500">
-            Sign in to your admin dashboard
+            Sign in to the Dealings Publishing dashboard
           </p>
         </div>
 
@@ -71,7 +71,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@researchhub.com"
+                placeholder="you@example.com"
                 required
                 autoComplete="email"
                 className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
@@ -122,17 +122,12 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-
-          {/* Dev hint */}
-          <div className="mt-6 p-3 bg-neutral-50 rounded-lg text-center">
-            <p className="text-xs text-neutral-400">
-              Dev login:{' '}
-              <code className="text-neutral-600">admin@researchhub.com</code>{' '}
-              /{' '}
-              <code className="text-neutral-600">Admin@123456</code>
-            </p>
-          </div>
         </div>
+
+        <p className="mt-6 text-center text-xs text-neutral-400">
+          Access is restricted to Dealings Publishing staff. Contact a
+          superadmin if you need an account.
+        </p>
       </div>
     </div>
   )

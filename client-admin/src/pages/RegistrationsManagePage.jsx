@@ -12,7 +12,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import DataTable from '@/components/ui/DataTable'
-import { formatDate, formatBookPrice } from '@/lib/utils'
+import { formatDate, formatIDR } from '@/lib/utils'
 import { eventAPI, registrationAPI } from '@/services/api'
 
 const submissionTone = {
@@ -175,7 +175,7 @@ export default function RegistrationsManagePage() {
                 {attendance?.role} · {attendance?.mode}
               </p>
               <p className="text-xs text-neutral-400">
-                {formatBookPrice(fee?.amountIdr)}
+                {formatIDR(fee?.amountIdr)}
               </p>
             </div>
           )
@@ -307,7 +307,7 @@ export default function RegistrationsManagePage() {
             tone="bg-success-50 text-success-600"
             hint={
               stats.revenueIdr
-                ? `${formatBookPrice(stats.revenueIdr)} collected`
+                ? `${formatIDR(stats.revenueIdr)} collected`
                 : undefined
             }
           />

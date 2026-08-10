@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useForm } from 'react-hook-form'
-import { UserPlus, AlertCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { UserPlus, AlertCircle, Eye, EyeOff, Check, X } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { useParticipantAuth } from '@/hooks/useParticipantAuth'
 
@@ -17,23 +18,31 @@ export default function ParticipantRegisterPage() {
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const redirectTo = location.state?.from || '/my/registrations'
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {
       name: '',
       email: '',
       password: '',
+      confirmPassword: '',
       phone: '',
       affiliation: '',
       country: '',
     },
   })
+
+  const passwordValue = watch('password') || ''
+  const confirmValue = watch('confirmPassword') || ''
+  const passwordsMatch = passwordValue.length > 0 && passwordValue === confirmValue
 
   if (!sessionLoading && isAuthenticated) {
     return <Navigate to={redirectTo} replace />
@@ -135,18 +144,76 @@ export default function ParticipantRegisterPage() {
                 <label className="block text-sm font-medium text-neutral-700 mb-1.5">
                   Password <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="At least 6 characters"
-                  {...register('password', {
-                    required: 'Password is required',
-                    minLength: { value: 6, message: 'Use at least 6 characters' },
-                  })}
-                  className={inputClass}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="At least 6 characters"
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: { value: 6, message: 'Use at least 6 characters' },
+                    })}
+                    className={`${inputClass} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-neutral-600 transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  Retype password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Type the same password again"
+                    {...register('confirmPassword', {
+                      required: 'Please retype your password',
+                      validate: (value) =>
+                        value === passwordValue || 'The two passwords do not match',
+                    })}
+                    className={cn(
+                      inputClass,
+                      'pr-20',
+                      confirmValue.length > 0 &&
+                        (passwordsMatch ? 'border-emerald-300' : 'border-rose-300')
+                    )}
+                  />
+
+                  {confirmValue.length > 0 && (
+                    <span className="absolute right-11 top-1/2 -translate-y-1/2">
+                      {passwordsMatch ? (
+                        <Check className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <X className="w-4 h-4 text-rose-500" />
+                      )}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-neutral-600 transition-colors"
+                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-xs text-rose-600">
+                    {errors.confirmPassword.message}
+                  </p>
                 )}
               </div>
 

@@ -76,6 +76,33 @@ export function formatFileSize(bytes) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
+/**
+ * Saves a Blob returned by the API as a file download.
+ * Used instead of a plain <a href> so the request carries the auth header and
+ * the server can set the correct Content-Type and filename.
+ */
+export function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = filename || 'download'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  // Give the browser a tick to start the download before revoking
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** Index of the last payment attempt with the given status, or -1. */
+export function lastPaymentIndex(payments = [], status) {
+  for (let i = payments.length - 1; i >= 0; i -= 1) {
+    if (payments[i]?.status === status) return i
+  }
+  return -1
+}
+
 /** Human label for an attendance pair, e.g. "Presenter · Offline". */
 export function attendanceLabel(role, mode) {
   if (!role || !mode) return ''

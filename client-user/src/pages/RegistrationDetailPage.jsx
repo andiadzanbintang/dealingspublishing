@@ -14,7 +14,6 @@ import {
   Copy,
   CreditCard,
   Download,
-  FileText,
   Hourglass,
   Mail,
   MapPin,
@@ -33,12 +32,29 @@ import {
   formatIDR,
   formatUSD,
   formatFileSize,
+  lastPaymentIndex,
   registrationStage,
+  saveBlob,
 } from '@/lib/utils'
 
 const inputClass =
   'w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
 const labelClass = 'block text-sm font-medium text-neutral-700 mb-1.5'
+
+const MANUSCRIPT_EXTENSIONS = ['pdf', 'doc', 'docx']
+const PROOF_EXTENSIONS = [...MANUSCRIPT_EXTENSIONS, 'jpg', 'jpeg', 'png', 'webp']
+
+/**
+ * Extension-based validation — see the note in EventRegisterPage. The MIME type
+ * a browser reports for .pdf depends on which desktop application registered
+ * the file type, so it cannot be trusted as an accept/reject signal.
+ */
+const extensionOf = (filename = '') => {
+  const parts = String(filename).split('.')
+  if (parts.length < 2) return ''
+  const candidate = parts.pop().toLowerCase()
+  return /^[a-z0-9]{1,8}$/.test(candidate) ? candidate : ''
+}
 
 const TIMELINE = [
   { key: 'submitted', label: 'Submitted', description: 'Abstract received' },
@@ -401,12 +417,11 @@ function PaymentPanel({ registration, cfg, stage, onUpdated }) {
 
   const setField = (key) => (e) => setFields((p) => ({ ...p, [key]: e.target.value }))
 
-  const pendingPayment = [...(registration.payments || [])]
-    .reverse()
-    .find((p) => p.status === 'pending')
-  const failedPayment = [...(registration.payments || [])]
-    .reverse()
-    .find((p) => p.status === 'failed')
+  const payments = registration.payments || []
+  const pendingIndex = lastPaymentIndex(payments, 'pending')
+  const pendingPayment = pendingIndex >= 0 ? payments[pendingIndex] : null
+  const failedIndex = lastPaymentIndex(payments, 'failed')
+  const failedPayment = failedIndex >= 0 ? payments[failedIndex] : null
 
   const copy = async (value, key) => {
     try {
@@ -486,17 +501,14 @@ function PaymentPanel({ registration, cfg, stage, onUpdated }) {
                 <SideRow label="Account name" value={pendingPayment.accountName} />
                 <SideRow label="Account number" value={pendingPayment.accountNumber} />
                 <SideRow label="Submitted" value={formatDateTime(pendingPayment.submittedAt)} />
-                {pendingPayment.proofFile?.url && (
+                {pendingPayment.proofFile?.url && pendingIndex >= 0 && (
                   <div className="sm:col-span-2">
-                    <a
-                      href={pendingPayment.proofFile.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
-                    >
-                      <FileText className="w-4 h-4" />
-                      View the receipt you uploaded
-                    </a>
+                    <DownloadButton
+                      registrationId={registration._id}
+                      kind={`payment-${pendingIndex}`}
+                      file={pendingPayment.proofFile}
+                      label="Download the receipt you uploaded"
+                    />
                   </div>
                 )}
               </dl>
@@ -753,8 +765,23 @@ function PaymentPanel({ registration, cfg, stage, onUpdated }) {
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-            onChange={(e) => setProof(e.target.files?.[0] || null)}
+            accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+            onChange={(e) => {
+              const candidate = e.target.files?.[0] || null
+              if (!candidate) return setProof(null)
+
+              if (!PROOF_EXTENSIONS.includes(extensionOf(candidate.name))) {
+                setError('Please attach a JPG, PNG, WEBP or PDF file.')
+                return
+              }
+              if (candidate.size > 10 * 1024 * 1024) {
+                setError('The receipt must not exceed 10 MB.')
+                return
+              }
+
+              setError('')
+              setProof(candidate)
+            }}
             className="hidden"
           />
         </div>
@@ -923,15 +950,13 @@ function FullPaperPanel({ registration, cfg, onUpdated }) {
               </p>
             </div>
           </div>
-          <a
-            href={existing.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 rounded-lg text-emerald-700 hover:bg-emerald-100"
-            aria-label="Download"
-          >
-            <Download className="w-4 h-4" />
-          </a>
+          <DownloadButton
+            registrationId={registration._id}
+            kind="full-paper"
+            file={existing}
+            iconOnly
+            tone="text-emerald-700 hover:bg-emerald-100"
+          />
         </div>
       )}
 
@@ -958,7 +983,24 @@ function FullPaperPanel({ registration, cfg, onUpdated }) {
           ref={fileRef}
           type="file"
           accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          onChange={(e) => {
+            const candidate = e.target.files?.[0] || null
+            if (!candidate) return setFile(null)
+
+            if (!MANUSCRIPT_EXTENSIONS.includes(extensionOf(candidate.name))) {
+              setError('Only Microsoft Word (.doc, .docx) or PDF files are accepted.')
+              return
+            }
+
+            const maxMb = cfg.maxFullPaperSizeMb ?? 25
+            if (candidate.size > maxMb * 1024 * 1024) {
+              setError(`The full chapter must not exceed ${maxMb} MB.`)
+              return
+            }
+
+            setError('')
+            setFile(candidate)
+          }}
           className="hidden"
         />
 
@@ -1011,15 +1053,14 @@ function SubmissionSummary({ registration }) {
       )}
 
       {registration.abstractFile?.url && (
-        <a
-          href={registration.abstractFile.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
-        >
-          <FileText className="w-4 h-4" />
-          {registration.abstractFile.originalName || 'Download abstract file'}
-        </a>
+        <div className="mt-5">
+          <DownloadButton
+            registrationId={registration._id}
+            kind="abstract"
+            file={registration.abstractFile}
+            label={registration.abstractFile.originalName || 'Download abstract file'}
+          />
+        </div>
       )}
     </div>
   )
@@ -1034,6 +1075,67 @@ function SideRow({ label, value }) {
     <div className="flex items-start justify-between gap-4">
       <dt className="text-neutral-500 flex-shrink-0">{label}</dt>
       <dd className="text-neutral-900 font-medium text-right break-words">{value || '—'}</dd>
+    </div>
+  )
+}
+
+/**
+ * Downloads through the API rather than linking straight to storage, so the
+ * file arrives with its original name and the right type instead of an
+ * extensionless blob the operating system cannot open.
+ */
+function DownloadButton({ registrationId, kind, file, label, iconOnly, tone }) {
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  const handleDownload = async () => {
+    setBusy(true)
+    setFailed(false)
+
+    try {
+      const blob = await registrationAPI.downloadFile(registrationId, kind)
+      saveBlob(blob, file?.originalName || `${kind}.${file?.format || 'bin'}`)
+    } catch {
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={busy}
+        className={cn('p-2 rounded-lg disabled:opacity-50', tone || 'text-primary-600 hover:bg-primary-50')}
+        aria-label="Download"
+        title="Download"
+      >
+        <Download className={cn('w-4 h-4', busy && 'animate-pulse')} />
+      </button>
+    )
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={busy}
+        className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50"
+      >
+        {busy ? <Clock className="w-4 h-4 animate-pulse" /> : <Download className="w-4 h-4" />}
+        <span className="text-left break-all">
+          {busy ? 'Preparing download…' : label || file?.originalName || 'Download'}
+        </span>
+      </button>
+
+      {failed && (
+        <p className="mt-1 text-xs text-rose-600">
+          Download failed. Please refresh the page and try again.
+        </p>
+      )}
     </div>
   )
 }

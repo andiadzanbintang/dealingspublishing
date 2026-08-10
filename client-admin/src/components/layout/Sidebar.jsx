@@ -7,8 +7,11 @@ import {
   Tags,
   Newspaper,
   CalendarDays,
+  CalendarCheck,
   ClipboardCheck,
+  ShieldCheck,
   Users,
+  UsersRound,
   Settings,
   Bot,
   ChevronLeft,
@@ -17,23 +20,62 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 
+/**
+ * `roles` lists who may see each entry. A reviewer is scoped to the events
+ * assigned to them, so they only get their event list and the review queue —
+ * every other section would be empty or forbidden for them anyway.
+ */
 const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Journals', path: '/journals', icon: BookOpen },
-  { label: 'Books', path: '/books', icon: BookText },
-  { label: 'Partnerships', path: '/partnerships', icon: Handshake },
-  { label: 'Topics', path: '/topics', icon: Tags },
-  { label: 'News', path: '/news', icon: Newspaper },
-  { label: 'Events', path: '/events', icon: CalendarDays },
-  { label: 'Registrations', path: '/registrations', icon: ClipboardCheck },
-  { label: 'Subscribers', path: '/subscribers', icon: Users },
-  { label: 'AI Config', path: '/ai-config', icon: Bot },
-  { label: 'Settings', path: '/settings', icon: Settings },
+  {
+    label: 'Dashboard',
+    path: '/dashboard',
+    icon: LayoutDashboard,
+    roles: ['superadmin', 'editor'],
+  },
+  { label: 'Journals', path: '/journals', icon: BookOpen, roles: ['superadmin', 'editor'] },
+  { label: 'Books', path: '/books', icon: BookText, roles: ['superadmin', 'editor'] },
+  {
+    label: 'Partnerships',
+    path: '/partnerships',
+    icon: Handshake,
+    roles: ['superadmin', 'editor'],
+  },
+  { label: 'Topics', path: '/topics', icon: Tags, roles: ['superadmin', 'editor'] },
+  { label: 'News', path: '/news', icon: Newspaper, roles: ['superadmin', 'editor'] },
+  { label: 'Events', path: '/events', icon: CalendarDays, roles: ['superadmin', 'editor'] },
+  {
+    label: 'My Events',
+    path: '/my-events',
+    icon: CalendarCheck,
+    roles: ['reviewer'],
+  },
+  {
+    label: 'Registrations',
+    path: '/registrations',
+    icon: ClipboardCheck,
+    roles: ['superadmin', 'editor', 'reviewer'],
+  },
+  { label: 'Users', path: '/users', icon: UsersRound, roles: ['superadmin', 'editor'] },
+  { label: 'Reviewers', path: '/reviewers', icon: ShieldCheck, roles: ['superadmin'] },
+  { label: 'Subscribers', path: '/subscribers', icon: Users, roles: ['superadmin', 'editor'] },
+  { label: 'AI Config', path: '/ai-config', icon: Bot, roles: ['superadmin', 'editor'] },
+  { label: 'Settings', path: '/settings', icon: Settings, roles: ['superadmin', 'editor'] },
 ]
+
+const roleLabels = {
+  superadmin: 'Superadmin',
+  editor: 'Editor',
+  reviewer: 'Event reviewer',
+}
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const { user } = useAuth()
+
+  const role = user?.role || 'editor'
+  const visibleItems = navItems.filter((item) => item.roles.includes(role))
 
   return (
     <aside
@@ -54,10 +96,20 @@ export default function Sidebar() {
         )}
       </div>
 
+      {/* Role badge — a reviewer should never wonder why the menu is short */}
+      {!collapsed && role === 'reviewer' && (
+        <div className="px-5 pt-4">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {roleLabels[role]}
+          </span>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
         <div className="space-y-1">
-          {navItems.map((item) => (
+          {visibleItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}

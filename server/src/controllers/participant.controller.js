@@ -1,6 +1,8 @@
 // src/controllers/participant.controller.js
 import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 import Participant from '../models/Participant.js'
+import EventRegistration from '../models/EventRegistration.js'
 import { AppError } from '../utils/AppError.js'
 import { catchAsync } from '../utils/catchAsync.js'
 import { getRedis } from '../config/redis.js'
@@ -171,24 +173,99 @@ export const changePassword = catchAsync(async (req, res, next) => {
   res.status(200).json({ status: 'success', message: 'Password updated' })
 })
 
-// ═══ ADMIN ═══
+// ═══════════════════════════════════════════════════════════
+// ADMIN — participant directory
+// ═══════════════════════════════════════════════════════════
 
+/**
+ * One row per participant, enriched with everything the Users screen shows:
+ * how many events they registered for, how many are paid, how much they have
+ * paid in total, and when they were last active. Done as a single aggregation
+ * so the list stays one round trip no matter how many participants exist.
+ */
 export const listParticipants = catchAsync(async (req, res) => {
   const query = req.sanitizedQuery || req.query
-  const limit = Math.min(parseInt(query.limit, 10) || 50, 200)
+  const limit = Math.min(parseInt(query.limit, 10) || 100, 500)
   const page = parseInt(query.page, 10) || 1
 
-  const filter = {}
+  const match = {}
   if (query.q) {
     const regex = new RegExp(query.q, 'i')
-    filter.$or = [{ name: regex }, { email: regex }, { affiliation: regex }]
+    match.$or = [{ name: regex }, { email: regex }, { affiliation: regex }]
   }
 
-  const total = await Participant.countDocuments(filter)
-  const participants = await Participant.find(filter)
-    .sort('-createdAt')
-    .skip((page - 1) * limit)
-    .limit(limit)
+  const total = await Participant.countDocuments(match)
+
+  const participants = await Participant.aggregate([
+    { $match: match },
+    { $sort: { createdAt: -1 } },
+    { $skip: (page - 1) * limit },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: 'eventregistrations',
+        localField: '_id',
+        foreignField: 'participant',
+        as: 'registrations',
+      },
+    },
+    {
+      $addFields: {
+        registrationCount: { $size: '$registrations' },
+        awaitingReviewCount: {
+          $size: {
+            $filter: {
+              input: '$registrations',
+              as: 'r',
+              cond: { $eq: ['$$r.submissionStatus', 'submitted'] },
+            },
+          },
+        },
+        pendingPaymentCount: {
+          $size: {
+            $filter: {
+              input: '$registrations',
+              as: 'r',
+              cond: { $eq: ['$$r.paymentStatus', 'pending'] },
+            },
+          },
+        },
+        confirmedCount: {
+          $size: {
+            $filter: {
+              input: '$registrations',
+              as: 'r',
+              cond: { $eq: ['$$r.paymentStatus', 'confirmed'] },
+            },
+          },
+        },
+        totalPaidIdr: {
+          $sum: {
+            $map: {
+              input: {
+                $filter: {
+                  input: '$registrations',
+                  as: 'r',
+                  cond: { $eq: ['$$r.paymentStatus', 'confirmed'] },
+                },
+              },
+              as: 'paid',
+              in: { $ifNull: ['$$paid.fee.amountIdr', 0] },
+            },
+          },
+        },
+        lastActivityAt: { $max: '$registrations.updatedAt' },
+      },
+    },
+    {
+      $project: {
+        password: 0,
+        refreshToken: 0,
+        registrations: 0,
+        __v: 0,
+      },
+    },
+  ])
 
   res.status(200).json({
     status: 'success',
@@ -196,5 +273,80 @@ export const listParticipants = catchAsync(async (req, res) => {
     total,
     page,
     data: participants,
+  })
+})
+
+/** Aggregate figures for the cards at the top of the Users screen. */
+export const getParticipantStats = catchAsync(async (req, res) => {
+  const [totalParticipants, withRegistration] = await Promise.all([
+    Participant.countDocuments(),
+    EventRegistration.distinct('participant'),
+  ])
+
+  const [totals] = await EventRegistration.aggregate([
+    {
+      $group: {
+        _id: null,
+        registrations: { $sum: 1 },
+        confirmed: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'confirmed'] }, 1, 0] } },
+        revenueIdr: {
+          $sum: { $cond: [{ $eq: ['$paymentStatus', 'confirmed'] }, '$fee.amountIdr', 0] },
+        },
+      },
+    },
+  ])
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      totalParticipants,
+      participantsWithRegistration: withRegistration.length,
+      registrations: totals?.registrations || 0,
+      confirmed: totals?.confirmed || 0,
+      revenueIdr: totals?.revenueIdr || 0,
+    },
+  })
+})
+
+/** A single participant plus every event they signed up for. */
+export const getParticipantById = catchAsync(async (req, res, next) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return next(new AppError('Invalid participant id', 400))
+  }
+
+  const participant = await Participant.findById(req.params.id)
+  if (!participant) return next(new AppError('Participant not found', 404))
+
+  const registrations = await EventRegistration.find({ participant: participant._id })
+    .populate('event', 'title slug eventDate location locationType')
+    .sort('-createdAt')
+
+  const summary = registrations.reduce(
+    (acc, registration) => {
+      acc.total += 1
+      if (registration.submissionStatus === 'submitted') acc.awaitingReview += 1
+      if (registration.submissionStatus === 'rejected') acc.needsRevision += 1
+      if (registration.paymentStatus === 'pending') acc.pendingPayment += 1
+      if (registration.paymentStatus === 'confirmed') {
+        acc.confirmed += 1
+        acc.totalPaidIdr += registration.fee?.amountIdr || 0
+        acc.totalPaidUsd += registration.fee?.amountUsd || 0
+      }
+      return acc
+    },
+    {
+      total: 0,
+      awaitingReview: 0,
+      needsRevision: 0,
+      pendingPayment: 0,
+      confirmed: 0,
+      totalPaidIdr: 0,
+      totalPaidUsd: 0,
+    }
+  )
+
+  res.status(200).json({
+    status: 'success',
+    data: { participant, registrations, summary },
   })
 })

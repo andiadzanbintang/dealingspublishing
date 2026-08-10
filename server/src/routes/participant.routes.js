@@ -25,7 +25,11 @@ router.get('/me', protectParticipant, ctrl.getMe)
 router.put('/me', protectParticipant, validate(participantUpdateSchema), ctrl.updateMe)
 router.put('/me/password', protectParticipant, validate(participantPasswordSchema), ctrl.changePassword)
 
-// ═══ Admin ═══
-router.get('/', protect, restrictTo('superadmin', 'editor'), ctrl.listParticipants)
+// ═══ Admin — participant directory ═══
+router.use(protect, restrictTo('superadmin', 'editor'))
+
+router.get('/', ctrl.listParticipants)
+router.get('/stats', ctrl.getParticipantStats)
+router.get('/:id', ctrl.getParticipantById)
 
 export default router

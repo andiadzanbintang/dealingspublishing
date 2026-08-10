@@ -96,6 +96,11 @@ const registrationConfig = {
   contactEmail: '',
   contactWhatsapp: '',
 
+  // Organiser inboxes notified on every new submission and payment proof.
+  notifyEmails: ['andiadzanbintang.work@gmail.com'],
+  notifyOnSubmission: true,
+  notifyOnPayment: true,
+
   instructions:
     'Submit your abstract first (PDF or Microsoft Word). The committee reviews every abstract before the payment step opens. Full chapter submissions are due 10 November 2026.',
 }

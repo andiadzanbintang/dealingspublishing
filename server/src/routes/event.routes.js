@@ -14,8 +14,9 @@ router.get('/public/:slug', ctrl.getBySlug)
 
 // Admin
 router.use(protect)
-router.get('/', restrictTo('superadmin', 'editor'), ctrl.getAllAdmin)
-router.get('/:id', restrictTo('superadmin', 'editor'), ctrl.getById)
+// Reviewers may read the events they are assigned to (scoped in the controller)
+router.get('/', restrictTo('superadmin', 'editor', 'reviewer'), ctrl.getAllAdmin)
+router.get('/:id', restrictTo('superadmin', 'editor', 'reviewer'), ctrl.getById)
 router.post('/', restrictTo('superadmin', 'editor'), validate(createEventSchema), ctrl.create)
 router.put('/:id', restrictTo('superadmin', 'editor'), validate(updateEventSchema), ctrl.update)
 router.delete('/:id', restrictTo('superadmin'), ctrl.remove)

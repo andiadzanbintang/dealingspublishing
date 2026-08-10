@@ -1,12 +1,23 @@
 // src/pages/EventFormPage.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save, Loader2, Plus, Trash2, Users } from 'lucide-react'
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Plus,
+  Trash2,
+  Users,
+  ShieldCheck,
+  Bell,
+  CheckCircle2,
+} from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import ImageUpload from '@/components/ui/ImageUpload'
 import { slugify } from '@/lib/utils'
-import { eventAPI, uploadAPI } from '@/services/api'
+import { eventAPI, uploadAPI, reviewerAPI } from '@/services/api'
+import { useAuth } from '@/hooks/useAuth'
 
 const inputClass =
   'w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
@@ -57,6 +68,10 @@ const emptyRegistration = () => ({
   contactEmail: '',
   contactWhatsapp: '',
   instructions: '',
+  // Comma-separated in the form, stored as an array
+  notifyEmails: '',
+  notifyOnSubmission: true,
+  notifyOnPayment: true,
 })
 
 const toDateInput = (value) =>
@@ -73,6 +88,14 @@ export default function EventFormPage() {
   const [content, setContent] = useState('')
   const [coverImage, setCoverImage] = useState(null)
   const [registration, setRegistration] = useState(emptyRegistration())
+
+  const { user } = useAuth()
+  const isSuperadmin = user?.role === 'superadmin'
+
+  const [reviewers, setReviewers] = useState([])
+  const [assignedReviewerIds, setAssignedReviewerIds] = useState([])
+  const [reviewerSaving, setReviewerSaving] = useState(false)
+  const [reviewerNotice, setReviewerNotice] = useState('')
 
   const {
     register,
@@ -160,6 +183,9 @@ export default function EventFormPage() {
           paymentMethods: { ...defaults.paymentMethods, ...(saved.paymentMethods || {}) },
           bank: { ...defaults.bank, ...(saved.bank || {}) },
           ticketPrefix: saved.ticketPrefix || '',
+          notifyEmails: (saved.notifyEmails || []).join(', '),
+          notifyOnSubmission: saved.notifyOnSubmission !== false,
+          notifyOnPayment: saved.notifyOnPayment !== false,
         })
       } catch (err) {
         console.error('Failed to fetch event:', err)
@@ -174,6 +200,49 @@ export default function EventFormPage() {
 
     fetchEvent()
   }, [isEdit, id, setValue])
+
+  // Reviewer assignment is only meaningful once the event exists, and only a
+  // superadmin may change it.
+  useEffect(() => {
+    if (!isEdit || !id || !isSuperadmin) return
+
+    const fetchReviewers = async () => {
+      try {
+        const response = await reviewerAPI.getAll()
+        const all = response?.data || []
+        setReviewers(all)
+        setAssignedReviewerIds(
+          all
+            .filter((reviewer) =>
+              (reviewer.assignedEvents || []).some(
+                (event) => String(event._id || event) === String(id)
+              )
+            )
+            .map((reviewer) => reviewer._id)
+        )
+      } catch {
+        setReviewers([])
+      }
+    }
+
+    fetchReviewers()
+  }, [isEdit, id, isSuperadmin])
+
+  const saveReviewerAssignment = async () => {
+    setReviewerSaving(true)
+    setReviewerNotice('')
+
+    try {
+      await reviewerAPI.setEventReviewers(id, assignedReviewerIds)
+      setReviewerNotice('Reviewer assignment saved.')
+    } catch (err) {
+      setReviewerNotice(
+        err.response?.data?.message || 'Could not save the reviewer assignment.'
+      )
+    } finally {
+      setReviewerSaving(false)
+    }
+  }
 
   const setReg = (key, value) => setRegistration((prev) => ({ ...prev, [key]: value }))
 
@@ -243,6 +312,12 @@ export default function EventFormPage() {
     contactEmail: registration.contactEmail || '',
     contactWhatsapp: registration.contactWhatsapp || '',
     instructions: registration.instructions || '',
+    notifyEmails: String(registration.notifyEmails || '')
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+    notifyOnSubmission: Boolean(registration.notifyOnSubmission),
+    notifyOnPayment: Boolean(registration.notifyOnPayment),
   })
 
   const onSubmit = async (data) => {
@@ -835,9 +910,135 @@ export default function EventFormPage() {
                       </div>
                     </div>
                   </section>
+
+                  {/* Organiser notifications */}
+                  <section className="space-y-4">
+                    <SectionTitle>Organiser notifications</SectionTitle>
+
+                    <div>
+                      <label className={labelClass}>Notify these addresses</label>
+                      <input
+                        value={registration.notifyEmails}
+                        onChange={(e) => setReg('notifyEmails', e.target.value)}
+                        placeholder="panitia@uir.ac.id, ketua@uir.ac.id"
+                        className={inputClass}
+                      />
+                      <p className="mt-1 text-xs text-neutral-400">
+                        Separate multiple addresses with a comma. Reviewers assigned to
+                        this event are notified automatically, and so is the fallback
+                        address in the server&apos;s ADMIN_NOTIFICATION_EMAIL.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-6">
+                      <Toggle
+                        label="Email on every new submission"
+                        checked={registration.notifyOnSubmission}
+                        onChange={(v) => setReg('notifyOnSubmission', v)}
+                      />
+                      <Toggle
+                        label="Email when a payment proof arrives"
+                        checked={registration.notifyOnPayment}
+                        onChange={(v) => setReg('notifyOnPayment', v)}
+                      />
+                    </div>
+
+                    <p className="flex items-start gap-2 text-xs text-neutral-400">
+                      <Bell className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                      These go out through the SMTP account already configured on the
+                      server, so they cost nothing extra.
+                    </p>
+                  </section>
                 </div>
               )}
             </div>
+
+            {/* ═══════════════════════════════════════ */}
+            {/* REVIEWERS                                */}
+            {/* ═══════════════════════════════════════ */}
+            {isEdit && isSuperadmin && (
+              <div className="bg-white rounded-xl border border-neutral-200 p-6 space-y-5">
+                <div>
+                  <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-neutral-400" />
+                    Reviewers for this event
+                  </h2>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    Reviewer accounts are managed under <strong>Reviewers</strong> in the
+                    sidebar — that page is the source of truth, because one person can
+                    cover several events. This panel is the shortcut from the other
+                    direction: who handles <em>this</em> event.
+                  </p>
+                </div>
+
+                {reviewers.length === 0 ? (
+                  <p className="text-sm text-neutral-400">
+                    No reviewer accounts exist yet. Create one under Reviewers first.
+                  </p>
+                ) : (
+                  <>
+                    <div className="rounded-xl border border-neutral-200 divide-y divide-neutral-100 max-h-64 overflow-y-auto">
+                      {reviewers.map((reviewer) => {
+                        const checked = assignedReviewerIds.includes(reviewer._id)
+                        return (
+                          <label
+                            key={reviewer._id}
+                            className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-neutral-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setAssignedReviewerIds((prev) =>
+                                  prev.includes(reviewer._id)
+                                    ? prev.filter((rid) => rid !== reviewer._id)
+                                    : [...prev, reviewer._id]
+                                )
+                              }
+                              className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500 cursor-pointer flex-shrink-0"
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-sm text-neutral-800 truncate">
+                                {reviewer.name}
+                              </span>
+                              <span className="block text-xs text-neutral-400 truncate">
+                                {reviewer.email}
+                                {!reviewer.isActive && ' · deactivated'}
+                              </span>
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={saveReviewerAssignment}
+                        disabled={reviewerSaving}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        {reviewerSaving ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4" />
+                        )}
+                        {reviewerSaving ? 'Saving…' : 'Save reviewer assignment'}
+                      </button>
+
+                      {reviewerNotice && (
+                        <span className="text-sm text-neutral-500">{reviewerNotice}</span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-neutral-400">
+                      Saved separately from the event itself, so it takes effect straight
+                      away without republishing the event.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right */}

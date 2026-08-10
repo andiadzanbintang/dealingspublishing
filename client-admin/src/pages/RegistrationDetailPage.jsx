@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Clock,
   Download,
-  FileText,
   Mail,
   Phone,
   RefreshCw,
@@ -19,7 +18,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
-import { formatDate, formatDateTime, formatBookPrice } from '@/lib/utils'
+import { formatDate, formatDateTime, formatIDR, saveBlob } from '@/lib/utils'
 import { registrationAPI } from '@/services/api'
 
 const submissionTone = {
@@ -324,8 +323,18 @@ export default function RegistrationDetailPage() {
             )}
 
             <div className="mt-5 pt-5 border-t border-neutral-100 space-y-2">
-              <FileRow label="Abstract file" file={registration.abstractFile} />
-              <FileRow label="Full chapter" file={registration.fullPaperFile} />
+              <FileRow
+                label="Abstract file"
+                file={registration.abstractFile}
+                registrationId={registration._id}
+                kind="abstract"
+              />
+              <FileRow
+                label="Full chapter"
+                file={registration.fullPaperFile}
+                registrationId={registration._id}
+                kind="full-paper"
+              />
             </div>
           </Panel>
 
@@ -340,9 +349,12 @@ export default function RegistrationDetailPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {[...payments].reverse().map((payment, index) => (
+                {payments
+                  .map((payment, originalIndex) => ({ payment, originalIndex }))
+                  .reverse()
+                  .map(({ payment, originalIndex }, index) => (
                   <div
-                    key={index}
+                    key={originalIndex}
                     className={`rounded-xl border p-4 ${
                       payment.status === 'confirmed'
                         ? 'border-success-200 bg-success-50/40'
@@ -379,7 +391,7 @@ export default function RegistrationDetailPage() {
                       {payment.country && <Row label="Country" value={payment.country} />}
                       <Row
                         label="Declared"
-                        value={`${formatBookPrice(payment.amountDeclared)} (${payment.currency})`}
+                        value={`${formatIDR(payment.amountDeclared)} (${payment.currency})`}
                       />
                     </dl>
 
@@ -398,15 +410,14 @@ export default function RegistrationDetailPage() {
                     )}
 
                     {payment.proofFile?.url && (
-                      <a
-                        href={payment.proofFile.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
-                      >
-                        <FileText className="w-4 h-4" />
-                        Open proof of transfer
-                      </a>
+                      <div className="mt-3">
+                        <DownloadButton
+                          registrationId={registration._id}
+                          kind={`payment-${originalIndex}`}
+                          file={payment.proofFile}
+                          label="Download proof of transfer"
+                        />
+                      </div>
                     )}
                   </div>
                 ))}
@@ -533,7 +544,7 @@ export default function RegistrationDetailPage() {
                 label="Attendance"
                 value={`${attendance?.role} · ${attendance?.mode}`}
               />
-              <Row label="Fee (IDR)" value={formatBookPrice(fee?.amountIdr)} />
+              <Row label="Fee (IDR)" value={formatIDR(fee?.amountIdr)} />
               <Row label="Fee (USD)" value={fee?.amountUsd ? `$${fee.amountUsd}` : '—'} />
               <Row
                 label="Account created"
@@ -619,28 +630,69 @@ function Row({ label, value }) {
   )
 }
 
-function FileRow({ label, file }) {
-  if (!file?.url) {
-    return (
-      <div className="flex items-center justify-between gap-4 text-sm">
-        <span className="text-neutral-500">{label}</span>
-        <span className="text-neutral-300">Not uploaded</span>
-      </div>
-    )
-  }
-
+function FileRow({ label, file, registrationId, kind }) {
   return (
     <div className="flex items-center justify-between gap-4 text-sm">
       <span className="text-neutral-500">{label}</span>
-      <a
-        href={file.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 font-medium text-primary-600 hover:text-primary-700 min-w-0"
+      {file?.url ? (
+        <DownloadButton
+          registrationId={registrationId}
+          kind={kind}
+          file={file}
+          label={file.originalName || 'Download'}
+        />
+      ) : (
+        <span className="text-neutral-300">Not uploaded</span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Downloads go through the API instead of linking straight to storage, so the
+ * file arrives with its original name and the right MIME type. A direct CDN
+ * link hands the browser an extensionless blob that Windows cannot open with
+ * Word or a PDF reader.
+ */
+function DownloadButton({ registrationId, kind, file, label }) {
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  const handleDownload = async () => {
+    setBusy(true)
+    setFailed(false)
+
+    try {
+      const blob = await registrationAPI.downloadFile(registrationId, kind)
+      saveBlob(blob, file?.originalName || `${kind}.${file?.format || 'bin'}`)
+    } catch {
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="min-w-0">
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={busy}
+        className="inline-flex items-center gap-2 font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50 min-w-0"
       >
-        <Download className="w-4 h-4 flex-shrink-0" />
-        <span className="truncate max-w-[220px]">{file.originalName || 'Download'}</span>
-      </a>
+        {busy ? (
+          <RefreshCw className="w-4 h-4 flex-shrink-0 animate-spin" />
+        ) : (
+          <Download className="w-4 h-4 flex-shrink-0" />
+        )}
+        <span className="truncate max-w-[240px]">
+          {busy ? 'Preparing…' : label || file?.originalName || 'Download'}
+        </span>
+      </button>
+
+      {failed && (
+        <p className="mt-1 text-xs text-danger-500">Download failed. Please try again.</p>
+      )}
     </div>
   )
 }

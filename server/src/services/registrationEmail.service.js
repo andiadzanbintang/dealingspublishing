@@ -271,3 +271,123 @@ export const sendTicketEmail = async (registration, event) => {
     }),
   })
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// 8. ORGANISER NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════
+//
+// These go out through the same SMTP transport already configured in .env, so
+// they cost nothing extra — no new service, no new account. Delivery is
+// best-effort: a bounced organiser notification must never fail a participant's
+// submission.
+
+const adminUrl = () => (process.env.CLIENT_ADMIN_URL || '').replace(/\/$/, '')
+
+const adminRegistrationUrl = (registration) =>
+  `${adminUrl()}/registrations/${registration._id}`
+
+/** Fan-out helper: one email per recipient, failures swallowed individually. */
+const sendToEach = async (recipients, buildMessage) => {
+  const list = (recipients || []).filter(Boolean)
+  if (list.length === 0) return false
+
+  const results = await Promise.all(
+    list.map((to) => sendEmail({ to, ...buildMessage(to) }).catch(() => false))
+  )
+
+  return results.some(Boolean)
+}
+
+/** New abstract submitted (or resubmitted after a revision request). */
+export const sendAdminSubmissionNotification = async (
+  recipients,
+  registration,
+  event,
+  { isResubmission = false } = {}
+) =>
+  sendToEach(recipients, () => ({
+    subject: `${isResubmission ? 'Revised submission' : 'New registration'} — ${event.title}`,
+    html: layout({
+      title: isResubmission ? 'A submission has been revised' : 'New event registration',
+      intro: isResubmission
+        ? `${escapeHtml(registration.profile.fullName)} has resubmitted after a revision request. It is waiting for review again.`
+        : `${escapeHtml(registration.profile.fullName)} has registered and is waiting for the committee's decision.`,
+      body: table([
+        ['Registration code', escapeHtml(registration.registrationCode)],
+        ['Event', escapeHtml(event.title)],
+        ['Name', escapeHtml(registration.profile.fullName)],
+        ['Affiliation', escapeHtml(registration.profile.affiliation)],
+        ['Email', escapeHtml(registration.profile.email)],
+        ['Phone', escapeHtml(registration.profile.phone)],
+        ['Attendance', escapeHtml(registration.ticket?.attendanceLabel || '')],
+        ['Fee', formatIdr(registration.fee?.amountIdr)],
+        registration.manuscript?.title
+          ? ['Article title', escapeHtml(registration.manuscript.title)]
+          : null,
+        registration.manuscript?.keywords?.length
+          ? ['Keywords', escapeHtml(registration.manuscript.keywords.join(', '))]
+          : null,
+        isResubmission ? ['Revision', `#${registration.submissionCount}`] : null,
+      ]),
+      cta: { url: adminRegistrationUrl(registration), label: 'Open in the dashboard' },
+      footerNote:
+        'You are receiving this because your address is listed as an organiser contact for this event, or you are an assigned reviewer.',
+    }),
+  }))
+
+/** A participant uploaded a proof of transfer that needs verifying. */
+export const sendAdminPaymentNotification = async (recipients, registration, event) => {
+  const latest = registration.payments?.[registration.payments.length - 1]
+
+  return sendToEach(recipients, () => ({
+    subject: `Payment to verify — ${registration.registrationCode} (${event.title})`,
+    html: layout({
+      title: 'A payment is waiting for verification',
+      intro: `${escapeHtml(registration.profile.fullName)} has uploaded a proof of transfer. Open the dashboard to confirm or reject it.`,
+      body: table([
+        ['Registration code', escapeHtml(registration.registrationCode)],
+        ['Event', escapeHtml(event.title)],
+        ['Name', escapeHtml(registration.profile.fullName)],
+        ['Amount due', formatIdr(registration.fee?.amountIdr)],
+        latest ? ['Transfer from', escapeHtml(latest.accountName || '')] : null,
+        latest ? ['Bank', escapeHtml(latest.bankName || '')] : null,
+        latest ? ['Account number', escapeHtml(latest.accountNumber || '')] : null,
+        latest?.swiftCode ? ['SWIFT / BIC', escapeHtml(latest.swiftCode)] : null,
+        ['Attempt', `#${registration.payments?.length || 1}`],
+      ]),
+      cta: { url: adminRegistrationUrl(registration), label: 'Verify this payment' },
+      footerNote:
+        'You are receiving this because your address is listed as an organiser contact for this event, or you are an assigned reviewer.',
+    }),
+  }))
+}
+
+/** Credentials handed to a newly created reviewer account. */
+export const sendReviewerAccountEmail = async (reviewer, plainPassword, events = []) =>
+  sendEmail({
+    to: reviewer.email,
+    subject: 'Your Dealings Publishing reviewer account',
+    html: layout({
+      title: 'You have been given reviewer access',
+      intro: `Hi ${escapeHtml(reviewer.name)}, a reviewer account has been created for you. It gives access to the events listed below and nothing else.`,
+      body: `
+        ${table([
+          ['Sign-in email', escapeHtml(reviewer.email)],
+          ['Temporary password', `<code>${escapeHtml(plainPassword)}</code>`],
+          [
+            'Assigned events',
+            events.length
+              ? events.map((event) => escapeHtml(event.title)).join('<br />')
+              : 'None yet',
+          ],
+        ])}
+        <p style="margin: 20px 0 0; font-size: 13px; color: #525252; line-height: 1.6;">
+          Please sign in and change this password as soon as you can. Ask a superadmin
+          if you need access to another event.
+        </p>
+      `,
+      cta: { url: adminUrl() || '#', label: 'Open the dashboard' },
+      footerNote: 'If you were not expecting this email, please contact the organiser.',
+    }),
+  })

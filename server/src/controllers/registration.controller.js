@@ -3,9 +3,12 @@ import mongoose from 'mongoose'
 import Event from '../models/Event.js'
 import EventRegistration from '../models/EventRegistration.js'
 import ActivityLog from '../models/ActivityLog.js'
+import User from '../models/User.js'
 import { AppError } from '../utils/AppError.js'
 import { catchAsync } from '../utils/catchAsync.js'
-import { uploadDocument } from '../services/storage.service.js'
+import { applyEventScope, assertEventAccess } from '../middleware/eventScope.middleware.js'
+import { Readable } from 'node:stream'
+import { uploadDocument, resolveContentType } from '../services/storage.service.js'
 import {
   buildRegistrationCode,
   buildTicketCode,
@@ -13,6 +16,8 @@ import {
   attendanceLabel,
 } from '../utils/registrationCodes.js'
 import {
+  sendAdminSubmissionNotification,
+  sendAdminPaymentNotification,
   sendRegistrationSubmittedEmail,
   sendRegistrationAcceptedEmail,
   sendRegistrationRejectedEmail,
@@ -33,6 +38,45 @@ const notify = (promise) => {
 }
 
 const str = (value) => (value === undefined || value === null ? '' : String(value).trim())
+
+/**
+ * Who gets told when something happens on an event: the organiser addresses
+ * configured on the event, a global fallback from the environment, and every
+ * active reviewer assigned to that event. Duplicates are collapsed.
+ */
+const collectOrganiserRecipients = async (event) => {
+  const recipients = new Set()
+
+  ;(event?.registration?.notifyEmails || []).forEach((email) => {
+    const clean = str(email).toLowerCase()
+    if (clean) recipients.add(clean)
+  })
+
+  str(process.env.ADMIN_NOTIFICATION_EMAIL)
+    .split(',')
+    .forEach((email) => {
+      const clean = str(email).toLowerCase()
+      if (clean) recipients.add(clean)
+    })
+
+  if (event?._id) {
+    try {
+      const reviewers = await User.find({
+        role: 'reviewer',
+        isActive: true,
+        assignedEvents: event._id,
+      }).select('email')
+
+      reviewers.forEach((reviewer) => {
+        if (reviewer.email) recipients.add(reviewer.email.toLowerCase())
+      })
+    } catch {
+      // A lookup failure must not block the participant's submission
+    }
+  }
+
+  return [...recipients]
+}
 
 const parseKeywords = (raw) => {
   if (Array.isArray(raw)) return raw.map(str).filter(Boolean)
@@ -326,6 +370,14 @@ export const submitRegistration = catchAsync(async (req, res, next) => {
 
   notify(sendRegistrationSubmittedEmail(registration, event))
 
+  if (cfg.notifyOnSubmission !== false) {
+    notify(
+      collectOrganiserRecipients(event).then((recipients) =>
+        sendAdminSubmissionNotification(recipients, registration, event, { isResubmission })
+      )
+    )
+  }
+
   res.status(isResubmission ? 200 : 201).json({ status: 'success', data: registration })
 })
 
@@ -445,6 +497,14 @@ export const submitPayment = catchAsync(async (req, res, next) => {
 
   notify(sendPaymentReceivedEmail(registration, event))
 
+  if (event?.registration?.notifyOnPayment !== false) {
+    notify(
+      collectOrganiserRecipients(event).then((recipients) =>
+        sendAdminPaymentNotification(recipients, registration, event)
+      )
+    )
+  }
+
   res.status(200).json({ status: 'success', data: registration })
 })
 
@@ -491,6 +551,7 @@ export const listRegistrations = catchAsync(async (req, res) => {
 
   const filter = {}
   if (query.event && mongoose.isValidObjectId(query.event)) filter.event = query.event
+  applyEventScope(filter, req.user)
   if (query.submissionStatus) filter.submissionStatus = query.submissionStatus
   if (query.paymentStatus) filter.paymentStatus = query.paymentStatus
   if (query.role) filter['attendance.role'] = query.role
@@ -530,6 +591,13 @@ export const getRegistrationStats = catchAsync(async (req, res) => {
   const match = {}
   if (query.event && mongoose.isValidObjectId(query.event)) {
     match.event = new mongoose.Types.ObjectId(query.event)
+  }
+
+  const scoped = applyEventScope({ ...match }, req.user)
+  if (scoped.event && scoped.event.$in) {
+    match.event = { $in: scoped.event.$in.map((id) => new mongoose.Types.ObjectId(id)) }
+  } else if (scoped.event) {
+    match.event = scoped.event
   }
 
   const [byStatus] = await EventRegistration.aggregate([
@@ -575,6 +643,7 @@ export const getRegistration = catchAsync(async (req, res, next) => {
     .populate('reviewedBy', 'name email')
 
   if (!registration) return next(new AppError('Registration not found', 404))
+  assertEventAccess(req.user, registration.event?._id || registration.event)
 
   res.status(200).json({ status: 'success', data: registration })
 })
@@ -588,6 +657,7 @@ export const reviewRegistration = catchAsync(async (req, res, next) => {
 
   const registration = await EventRegistration.findById(req.params.id)
   if (!registration) return next(new AppError('Registration not found', 404))
+  assertEventAccess(req.user, registration.event)
 
   if (registration.paymentStatus === 'confirmed') {
     return next(new AppError('This registration is already paid and cannot be re-reviewed.', 400))
@@ -635,6 +705,7 @@ export const reviewPayment = catchAsync(async (req, res, next) => {
 
   const registration = await EventRegistration.findById(req.params.id)
   if (!registration) return next(new AppError('Registration not found', 404))
+  assertEventAccess(req.user, registration.event)
 
   const latest = [...registration.payments].reverse().find((p) => p.status === 'pending')
   if (!latest) return next(new AppError('There is no pending payment to review.', 400))
@@ -726,6 +797,8 @@ export const reviewPayment = catchAsync(async (req, res, next) => {
 export const resendTicketEmail = catchAsync(async (req, res, next) => {
   const registration = await EventRegistration.findById(req.params.id)
   if (!registration) return next(new AppError('Registration not found', 404))
+  assertEventAccess(req.user, registration.event)
+
   if (registration.paymentStatus !== 'confirmed' || !registration.ticket?.code) {
     return next(new AppError('No ticket has been issued for this registration yet.', 400))
   }
@@ -749,6 +822,7 @@ export const getRecap = catchAsync(async (req, res) => {
   const query = req.sanitizedQuery || req.query
   const filter = {}
   if (query.event && mongoose.isValidObjectId(query.event)) filter.event = query.event
+  applyEventScope(filter, req.user)
   if (query.onlyPaid !== 'false') filter.paymentStatus = 'confirmed'
 
   const registrations = await EventRegistration.find(filter)
@@ -804,4 +878,87 @@ export const getRecap = catchAsync(async (req, res) => {
   }
 
   res.status(200).json({ status: 'success', results: rows.length, data: rows })
+})
+
+// ═══════════════════════════════════════════════════════════
+// FILE DOWNLOADS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Files are streamed through the API rather than linked to directly, so that
+ * every download carries the right Content-Type and the participant's original
+ * filename. A raw Cloudinary link hands the browser an opaque blob, which the
+ * operating system then cannot associate with Word or a PDF reader.
+ * Streaming also keeps abstracts and payment receipts behind authentication
+ * instead of a public CDN URL.
+ */
+const pickStoredFile = (registration, kind) => {
+  if (kind === 'abstract') return registration.abstractFile
+  if (kind === 'full-paper') return registration.fullPaperFile
+
+  const paymentMatch = /^payment-(\d+)$/.exec(kind)
+  if (paymentMatch) {
+    const index = Number(paymentMatch[1])
+    return registration.payments?.[index]?.proofFile || null
+  }
+
+  return null
+}
+
+const asciiFallbackName = (name) =>
+  (name || 'download').replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_')
+
+const streamStoredFile = async (res, next, storedFile) => {
+  if (!storedFile?.url) {
+    return next(new AppError('File not found for this registration.', 404))
+  }
+
+  if (typeof fetch !== 'function') {
+    return next(new AppError('This Node.js version cannot proxy downloads. Node 18+ is required.', 500))
+  }
+
+  let upstream
+  try {
+    upstream = await fetch(storedFile.url)
+  } catch {
+    return next(new AppError('Storage is unreachable. Please try again.', 502))
+  }
+
+  if (!upstream.ok || !upstream.body) {
+    return next(new AppError('The file could not be retrieved from storage.', 502))
+  }
+
+  const filename = storedFile.originalName || `download.${storedFile.format || 'bin'}`
+  const length = upstream.headers.get('content-length')
+
+  res.setHeader('Content-Type', resolveContentType(storedFile))
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${asciiFallbackName(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+  )
+  res.setHeader('Cache-Control', 'private, no-store')
+  if (length) res.setHeader('Content-Length', length)
+
+  Readable.fromWeb(upstream.body).pipe(res)
+}
+
+/** Participant downloading their own abstract, full paper or payment proof. */
+export const downloadMyFile = catchAsync(async (req, res, next) => {
+  const registration = await EventRegistration.findOne({
+    _id: req.params.id,
+    participant: req.participant._id,
+  })
+
+  if (!registration) return next(new AppError('Registration not found', 404))
+
+  await streamStoredFile(res, next, pickStoredFile(registration, req.params.kind))
+})
+
+/** Admin downloading any file attached to a registration. */
+export const downloadRegistrationFile = catchAsync(async (req, res, next) => {
+  const registration = await EventRegistration.findById(req.params.id)
+  if (!registration) return next(new AppError('Registration not found', 404))
+  assertEventAccess(req.user, registration.event)
+
+  await streamStoredFile(res, next, pickStoredFile(registration, req.params.kind))
 })
