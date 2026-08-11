@@ -287,16 +287,35 @@ const adminUrl = () => (process.env.CLIENT_ADMIN_URL || '').replace(/\/$/, '')
 const adminRegistrationUrl = (registration) =>
   `${adminUrl()}/registrations/${registration._id}`
 
-/** Fan-out helper: one email per recipient, failures swallowed individually. */
+/**
+ * Fan-out helper: one email per recipient. A failure for one organiser must not
+ * stop the others, but it is reported rather than swallowed — `sendEmail`
+ * returns { ok, error }, so a rejected message is no longer mistaken for a sent
+ * one just because the object is truthy.
+ */
 const sendToEach = async (recipients, buildMessage) => {
-  const list = (recipients || []).filter(Boolean)
-  if (list.length === 0) return false
+  const list = [...new Set((recipients || []).filter(Boolean))]
+  if (list.length === 0) return { ok: false, sent: 0, failed: 0, results: [] }
 
   const results = await Promise.all(
-    list.map((to) => sendEmail({ to, ...buildMessage(to) }).catch(() => false))
+    list.map(async (to) => {
+      try {
+        const result = await sendEmail({ to, ...buildMessage(to) })
+        return { to, ...result }
+      } catch (error) {
+        return { to, ok: false, error: { response: error?.message || String(error) } }
+      }
+    })
   )
 
-  return results.some(Boolean)
+  const sent = results.filter((r) => r.ok).length
+
+  return {
+    ok: sent > 0,
+    sent,
+    failed: results.length - sent,
+    results,
+  }
 }
 
 /** New abstract submitted (or resubmitted after a revision request). */

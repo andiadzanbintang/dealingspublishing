@@ -20,6 +20,7 @@ import RegistrationDetailPage from '@/pages/RegistrationDetailPage'
 import UsersManagePage from '@/pages/UsersManagePage'
 import UserDetailPage from '@/pages/UserDetailPage'
 import ReviewersManagePage from '@/pages/ReviewersManagePage'
+import EmailDeliveryPage from '@/pages/EmailDeliveryPage'
 import MyEventsPage from '@/pages/MyEventsPage'
 import SubscribersPage from '@/pages/SubscribersPage'
 import SettingsPage from '@/pages/SettingsPage'
@@ -193,6 +194,15 @@ export default function App() {
               element={
                 <RoleRoute allow={['superadmin']}>
                   <ReviewersManagePage />
+                </RoleRoute>
+              }
+            />
+
+            <Route
+              path="/email"
+              element={
+                <RoleRoute allow={['superadmin']}>
+                  <EmailDeliveryPage />
                 </RoleRoute>
               }
             />

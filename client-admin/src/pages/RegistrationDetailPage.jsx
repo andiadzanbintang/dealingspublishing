@@ -121,7 +121,14 @@ export default function RegistrationDetailPage() {
       const response = await registrationAPI.resendTicket(id)
       setNotice(response?.message || 'Ticket email resent.')
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not resend the ticket email.')
+      // The endpoint answers 502 when the mail server refused the message, and
+      // carries the reason — show that instead of a generic failure.
+      const body = err.response?.data
+      setError(
+        [body?.message || 'Could not resend the ticket email.', body?.hint]
+          .filter(Boolean)
+          .join(' ')
+      )
     } finally {
       setActionLoading('')
     }

@@ -127,14 +127,29 @@ export const createReviewer = catchAsync(async (req, res, next) => {
     ipAddress: req.ip,
   })
 
+  // Awaited on purpose: the superadmin is standing there waiting to find out
+  // whether the reviewer received their password, so a silent failure here is
+  // worse than a slightly slower response.
+  let emailDelivery = null
   if (sendEmail) {
     const assigned = await Event.find({ _id: { $in: events } }).select('title')
-    sendReviewerAccountEmail(reviewer, password, assigned).catch(() => {})
+    const result = await sendReviewerAccountEmail(reviewer, password, assigned)
+    emailDelivery = {
+      ok: Boolean(result?.ok),
+      message: result?.ok
+        ? `Credentials emailed to ${reviewer.email}`
+        : `Could not email the credentials: ${result?.error?.response || 'unknown error'}`,
+      hint: result?.ok ? undefined : result?.error?.hint,
+    }
   }
 
   const populated = await reviewer.populate('assignedEvents', 'title slug eventDate')
 
-  res.status(201).json({ status: 'success', data: publicReviewer(populated) })
+  res.status(201).json({
+    status: 'success',
+    data: publicReviewer(populated),
+    emailDelivery,
+  })
 })
 
 // ═══════════════════════════════════════════════════════════
@@ -196,12 +211,26 @@ export const resetReviewerPassword = catchAsync(async (req, res, next) => {
     ipAddress: req.ip,
   })
 
+  let emailDelivery = null
   if (sendEmail) {
     const assigned = await Event.find({ _id: { $in: reviewer.assignedEvents } }).select('title')
-    sendReviewerAccountEmail(reviewer, password, assigned).catch(() => {})
+    const result = await sendReviewerAccountEmail(reviewer, password, assigned)
+    emailDelivery = {
+      ok: Boolean(result?.ok),
+      message: result?.ok
+        ? `New password emailed to ${reviewer.email}`
+        : `Password changed, but the email failed: ${result?.error?.response || 'unknown error'}`,
+      hint: result?.ok ? undefined : result?.error?.hint,
+    }
   }
 
-  res.status(200).json({ status: 'success', message: 'Password updated' })
+  res.status(200).json({
+    status: 'success',
+    message: emailDelivery
+      ? emailDelivery.message
+      : 'Password updated. Share it with the reviewer yourself.',
+    emailDelivery,
+  })
 })
 
 // ═══════════════════════════════════════════════════════════

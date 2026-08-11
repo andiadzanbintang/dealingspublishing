@@ -778,8 +778,8 @@ export const reviewPayment = catchAsync(async (req, res, next) => {
 
   if (decision === 'confirm') {
     notify(
-      sendTicketEmail(registration, event).then(async (ok) => {
-        if (ok) {
+      sendTicketEmail(registration, event).then(async (result) => {
+        if (result?.ok) {
           await EventRegistration.updateOne(
             { _id: registration._id },
             { ticketEmailSentAt: new Date() }
@@ -804,16 +804,21 @@ export const resendTicketEmail = catchAsync(async (req, res, next) => {
   }
 
   const event = await Event.findById(registration.event)
-  const ok = await sendTicketEmail(registration, event)
+  const result = await sendTicketEmail(registration, event)
 
-  if (ok) {
+  if (result?.ok) {
     registration.ticketEmailSentAt = new Date()
     await registration.save()
   }
 
-  res.status(200).json({
-    status: ok ? 'success' : 'fail',
-    message: ok ? 'Ticket email resent' : 'Email delivery failed. Check the SMTP settings.',
+  // Report what actually happened. Claiming "sent" for a message the mail
+  // server refused is how a delivery problem stays invisible for weeks.
+  res.status(result?.ok ? 200 : 502).json({
+    status: result?.ok ? 'success' : 'fail',
+    message: result?.ok
+      ? `Ticket email sent to ${registration.profile.email}`
+      : `Delivery failed: ${result?.error?.response || 'unknown error'}`,
+    hint: result?.ok ? undefined : result?.error?.hint,
   })
 })
 

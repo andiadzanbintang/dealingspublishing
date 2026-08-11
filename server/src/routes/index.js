@@ -15,6 +15,7 @@ import partnershipRoutes from './partnership.routes.js'
 import participantRoutes from './participant.routes.js'
 import registrationRoutes from './registration.routes.js'
 import reviewerRoutes from './reviewer.routes.js'
+import emailRoutes from './email.routes.js'
 
 const router = Router()
 
@@ -33,5 +34,6 @@ router.use('/partnerships', partnershipRoutes)
 router.use('/participants', participantRoutes)
 router.use('/registrations', registrationRoutes)
 router.use('/reviewers', reviewerRoutes)
+router.use('/email', emailRoutes)
 
 export default router

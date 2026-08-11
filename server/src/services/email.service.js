@@ -2,36 +2,227 @@
 import nodemailer from 'nodemailer'
 import { logger } from '../config/logger.js'
 
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT, 10),
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  })
+/**
+ * A note on what this file is and is not.
+ *
+ * Nodemailer is not an email *service* — it is the SMTP client library. The
+ * service is whatever `EMAIL_HOST` points at (Resend, Hostinger, Gmail, …).
+ * Switching provider is a change to `.env`, never a change to this code.
+ *
+ * The previous version of this file swallowed every failure and returned false,
+ * and callers ignored that, so the dashboard reported "emailed" for messages
+ * that were never accepted by the server. Everything here returns a result you
+ * can act on, and the reason for a failure is preserved all the way up.
+ */
+
+const REQUIRED_KEYS = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS', 'EMAIL_FROM']
+
+/**
+ * `.env` values sometimes carry a trailing comment or stray quotes. dotenv v17
+ * strips inline comments already, but a hand-edited file can still contain
+ * something like `EMAIL_FROM="Name <a@b.com>" ` — normalise defensively so a
+ * malformed envelope never becomes a silent rejection.
+ */
+const clean = (value = '') => String(value).trim().replace(/^["']|["']$/g, '')
+
+/** Pulls a bare address out of "Display Name <a@b.com>" or plain "a@b.com". */
+const bareAddress = (value = '') => {
+  const match = /<([^>]+)>/.exec(value)
+  const candidate = clean(match ? match[1] : value)
+  return candidate.split(/\s+/)[0] || ''
 }
 
-export const sendEmail = async ({ to, subject, html }) => {
-  try {
-    const transporter = createTransporter()
+export const getEmailConfig = () => {
+  const port = parseInt(clean(process.env.EMAIL_PORT), 10) || 587
+  const from = bareAddress(process.env.EMAIL_FROM)
 
-    await transporter.sendMail({
-      from: `"Dealings Publishing" <${process.env.EMAIL_FROM}>`,
+  return {
+    host: clean(process.env.EMAIL_HOST),
+    port,
+    // 465 is implicit TLS. 587 and 25 start in the clear and upgrade with
+    // STARTTLS — forcing `secure: true` there makes the handshake hang or fail,
+    // which is one of the most common silent SMTP misconfigurations.
+    secure: port === 465,
+    requireTLS: port !== 465,
+    user: clean(process.env.EMAIL_USER),
+    hasPassword: Boolean(clean(process.env.EMAIL_PASS)),
+    from,
+    fromName: clean(process.env.EMAIL_FROM_NAME) || 'Dealings Publishing',
+    replyTo: bareAddress(process.env.EMAIL_REPLY_TO) || '',
+    debug: clean(process.env.EMAIL_DEBUG) === 'true',
+    missing: REQUIRED_KEYS.filter((key) => !clean(process.env[key])),
+  }
+}
+
+let transporter = null
+let transporterSignature = ''
+
+const buildTransporter = () => {
+  const config = getEmailConfig()
+
+  // Rebuild if the environment changed under us (nodemon reload, test harness)
+  const signature = [config.host, config.port, config.user, config.secure].join('|')
+  if (transporter && signature === transporterSignature) return transporter
+
+  transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    requireTLS: config.requireTLS,
+    auth: { user: config.user, pass: clean(process.env.EMAIL_PASS) },
+    // One connection reused across a burst of notifications instead of a fresh
+    // TCP + TLS handshake per message.
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 50,
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
+    logger: config.debug,
+    debug: config.debug,
+  })
+
+  transporterSignature = signature
+  return transporter
+}
+
+/**
+ * Turns an SMTP failure into something a human can act on. The raw errors are
+ * terse ("EAUTH", "550") and the fix differs per provider, so the guidance is
+ * spelled out here rather than left for someone to search for.
+ */
+export const describeEmailError = (error) => {
+  const config = getEmailConfig()
+  const code = error?.code || ''
+  const responseCode = error?.responseCode || error?.responseCode || null
+  const response = error?.response || error?.message || String(error)
+
+  let hint = 'Check the EMAIL_* values in server/.env, then restart the server.'
+
+  if (config.missing.length > 0) {
+    hint = `These .env values are empty: ${config.missing.join(', ')}.`
+  } else if (code === 'EAUTH' || responseCode === 535) {
+    hint =
+      'The mail server rejected the username or password. For Resend the username must be the literal word "resend" and the password must be an API key starting with re_. For Hostinger or Gmail the username is the full mailbox address; Gmail additionally requires an App Password, not the account password.'
+  } else if (code === 'ECONNECTION' || code === 'ESOCKET' || code === 'ETIMEDOUT') {
+    hint = `Could not open an SMTP connection to ${config.host}:${config.port}. Either the host or port is wrong, or outbound SMTP is blocked on this network. Port 465 needs secure=true, port 587 needs STARTTLS — this service picks that automatically from the port number.`
+  } else if (code === 'EENVELOPE' || responseCode === 403) {
+    hint = `The server refused the envelope. With Resend this usually means the sending domain of "${config.from}" is not verified yet — until it is, Resend only accepts messages addressed to your own account email. Verify the domain in the Resend dashboard, or send through the mailbox provider that already owns the address.`
+  } else if (responseCode === 550 || responseCode === 553) {
+    hint = `The server will not let this account send as "${config.from}". The From address normally has to match the authenticated mailbox, or a domain you have verified with the provider.`
+  } else if (code === 'EMESSAGE') {
+    hint = 'The message itself was rejected — usually a malformed From or To address.'
+  } else if (/self.signed|certificate/i.test(response)) {
+    hint = 'TLS certificate problem. Confirm the host name matches the certificate.'
+  }
+
+  return { code: code || null, responseCode, response, hint }
+}
+
+// A short in-process history so the dashboard can answer "did that actually
+// send?" without a schema change. Not persisted — it is a debugging aid.
+const RECENT_LIMIT = 25
+const recentAttempts = []
+
+const record = (entry) => {
+  recentAttempts.unshift({ ...entry, at: new Date().toISOString() })
+  if (recentAttempts.length > RECENT_LIMIT) recentAttempts.length = RECENT_LIMIT
+}
+
+export const getRecentEmailAttempts = () => [...recentAttempts]
+
+/** Opens a connection and authenticates without sending anything. */
+export const verifyTransport = async () => {
+  const config = getEmailConfig()
+
+  if (config.missing.length > 0) {
+    return {
+      ok: false,
+      error: {
+        code: 'ECONFIG',
+        responseCode: null,
+        response: `Missing .env values: ${config.missing.join(', ')}`,
+        hint: 'Fill these in server/.env and restart the server.',
+      },
+    }
+  }
+
+  try {
+    await buildTransporter().verify()
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: describeEmailError(error) }
+  }
+}
+
+/**
+ * Sends one message.
+ *
+ * Returns { ok, messageId, accepted, rejected, response, error } — never throws,
+ * but never claims success it did not get either. A caller that shows a message
+ * to a human must read `ok`.
+ */
+export const sendEmail = async ({ to, subject, html, text, replyTo, attachments }) => {
+  const config = getEmailConfig()
+
+  if (config.missing.length > 0) {
+    const error = {
+      code: 'ECONFIG',
+      responseCode: null,
+      response: `Missing .env values: ${config.missing.join(', ')}`,
+      hint: 'Fill these in server/.env and restart the server.',
+    }
+    logger.error(`Email not sent to ${to}: ${error.response}`)
+    record({ to, subject, ok: false, error })
+    return { ok: false, error }
+  }
+
+  try {
+    const info = await buildTransporter().sendMail({
+      from: `"${config.fromName}" <${config.from}>`,
       to,
       subject,
       html,
+      text,
+      replyTo: replyTo || config.replyTo || undefined,
+      attachments,
     })
 
-    logger.info(`Email sent to ${to}: ${subject}`)
-    return true
-  } catch (error) {
-    logger.error(`Email failed to ${to}: ${error.message}`)
-    return false
+    // A server can accept the connection and still refuse a recipient
+    const rejected = info.rejected || []
+    if (rejected.length > 0) {
+      const error = {
+        code: 'EREJECTED',
+        responseCode: null,
+        response: `The server rejected: ${rejected.join(', ')}. ${info.response || ''}`.trim(),
+        hint: 'The recipient was refused. With Resend on an unverified domain only your own account address is accepted.',
+      }
+      logger.error(`Email rejected for ${to}: ${error.response}`)
+      record({ to, subject, ok: false, error })
+      return { ok: false, error, messageId: info.messageId }
+    }
+
+    logger.info(`Email sent to ${to}: ${subject} (${info.messageId})`)
+    record({ to, subject, ok: true, messageId: info.messageId, response: info.response })
+
+    return {
+      ok: true,
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected,
+      response: info.response,
+    }
+  } catch (rawError) {
+    const error = describeEmailError(rawError)
+    logger.error(`Email failed to ${to}: ${error.response} | ${error.hint}`)
+    record({ to, subject, ok: false, error })
+    return { ok: false, error }
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// SUBSCRIBER EMAILS (unchanged content, honest return value)
+// ═══════════════════════════════════════════════════════════
 
 export const sendVerificationEmail = async (email, token) => {
   const verifyUrl = `${process.env.CLIENT_USER_URL}/verify?token=${token}`
@@ -78,6 +269,32 @@ export const sendNewsletterEmail = async (email, subject, content, unsubscribeTo
         <p style="color: #A3A3A3; font-size: 12px; text-align: center;">
           <a href="${unsubscribeUrl}" style="color: #A3A3A3;">Unsubscribe</a>
         </p>
+      </div>
+    `,
+  })
+}
+
+/** Plain diagnostic message used by the test tools. */
+export const sendTestEmail = async (to) => {
+  const config = getEmailConfig()
+
+  return sendEmail({
+    to,
+    subject: 'Dealings Publishing — email delivery test',
+    text: `This is a test message from the Dealings Publishing server.\n\nHost: ${config.host}:${config.port}\nFrom: ${config.from}\n\nIf you are reading this, outgoing email works.`,
+    html: `
+      <div style="font-family: 'Inter', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+        <h1 style="font-size: 20px; color: #171717; margin: 0 0 12px;">Email delivery works</h1>
+        <p style="color: #525252; line-height: 1.6; margin: 0 0 20px;">
+          This is a test message from the Dealings Publishing server. If it reached
+          your inbox, participant tickets, invoices and organiser notifications will
+          reach it too.
+        </p>
+        <table style="width: 100%; border-collapse: collapse; background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 12px;">
+          <tr><td style="padding: 10px 14px; font-size: 12px; color: #A3A3A3;">SMTP host</td><td style="padding: 10px 14px; font-size: 14px; color: #262626;">${config.host}:${config.port}</td></tr>
+          <tr><td style="padding: 10px 14px; font-size: 12px; color: #A3A3A3;">Encryption</td><td style="padding: 10px 14px; font-size: 14px; color: #262626;">${config.secure ? 'Implicit TLS (465)' : 'STARTTLS'}</td></tr>
+          <tr><td style="padding: 10px 14px; font-size: 12px; color: #A3A3A3;">From</td><td style="padding: 10px 14px; font-size: 14px; color: #262626;">${config.from}</td></tr>
+        </table>
       </div>
     `,
   })

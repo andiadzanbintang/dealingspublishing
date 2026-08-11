@@ -281,4 +281,13 @@ export const reviewerAPI = {
   getMyEvents: () => api.get('/reviewers/me/events'),
 }
 
+// ════════════════════════════════
+// EMAIL DELIVERY (superadmin only)
+// ════════════════════════════════
+export const emailAPI = {
+  getHealth: () => api.get('/email/health'),
+  // Sends a real message; the response carries whatever the SMTP server said.
+  sendTest: (to) => api.post('/email/test', { to }, { timeout: 45000 }),
+}
+
 export default api

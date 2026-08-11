@@ -135,18 +135,30 @@ export default function ReviewersManagePage() {
         })
         setNotice('Reviewer updated.')
       } else {
-        await reviewerAPI.create({
+        const response = await reviewerAPI.create({
           name: form.name.trim(),
           email: form.email.trim().toLowerCase(),
           password: form.password,
           assignedEvents: form.assignedEvents,
           sendEmail: form.sendEmail,
         })
-        setNotice(
-          form.sendEmail
-            ? 'Reviewer created. The credentials have been emailed to them.'
-            : 'Reviewer created. Share the password with them yourself.'
-        )
+
+        // The account always exists at this point; the email may not have gone
+        // out. Say which, rather than claiming both worked.
+        const delivery = response?.emailDelivery
+
+        if (!form.sendEmail) {
+          setNotice('Reviewer created. Share the password with them yourself.')
+        } else if (delivery?.ok) {
+          setNotice(`Reviewer created. ${delivery.message}`)
+        } else {
+          setNotice('')
+          setError(
+            `Reviewer created, but the credential email did not go out. ${
+              delivery?.message || ''
+            } ${delivery?.hint || ''} You can still give them the password directly, and check the Email page for details.`.trim()
+          )
+        }
       }
 
       setPanelOpen(false)
@@ -175,11 +187,24 @@ export default function ReviewersManagePage() {
     }
 
     try {
-      await reviewerAPI.resetPassword(passwordTarget._id, {
+      const response = await reviewerAPI.resetPassword(passwordTarget._id, {
         password: newPassword,
         sendEmail: true,
       })
-      setNotice(`Password reset for ${passwordTarget.email}. They have been emailed.`)
+
+      const delivery = response?.emailDelivery
+
+      if (delivery?.ok) {
+        setNotice(`Password reset for ${passwordTarget.email}. ${delivery.message}`)
+      } else {
+        setNotice('')
+        setError(
+          `The password was changed, but the email did not go out. ${
+            delivery?.message || ''
+          } ${delivery?.hint || ''} Give the new password to ${passwordTarget.email} directly.`.trim()
+        )
+      }
+
       setPasswordTarget(null)
       setNewPassword('')
     } catch (err) {
