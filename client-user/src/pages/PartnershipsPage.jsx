@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { motion } from 'framer-motion'
 import { Handshake, RefreshCw, ExternalLink } from 'lucide-react'
 import Button from '@/components/ui/Button'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { partnershipAPI } from '@/services/api'
 
 export default function PartnershipsPage() {
@@ -140,9 +141,15 @@ export default function PartnershipsPage() {
                     {partnership.name}
                   </h3>
 
-                  <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
+                  <ExpandableText
+                    className="mt-3"
+                    lines={4}
+                    moreLabel="More"
+                    lessLabel="Less"
+                    contentClassName="text-sm text-neutral-500 leading-relaxed"
+                  >
                     {partnership.description}
-                  </p>
+                  </ExpandableText>
 
                   {partnership.externalUrl && (
                     <a

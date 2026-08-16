@@ -9,16 +9,19 @@
 // cannot show you.
 
 import 'dotenv/config'
+import fs from 'node:fs'
+import path from 'node:path'
 import {
   getEmailConfig,
+  getConfigWarnings,
   verifyTransport,
   sendTestEmail,
 } from '../services/email.service.js'
 
 const recipient = process.argv[2] || null
 
-const line = (char = '─') => console.log(char.repeat(64))
-const label = (k, v) => console.log(`  ${k.padEnd(14)} ${v}`)
+const line = (char = '─') => console.log(char.repeat(72))
+const label = (k, v) => console.log(`  ${String(k).padEnd(14)} ${v}`)
 
 const run = async () => {
   const config = getEmailConfig()
@@ -27,7 +30,13 @@ const run = async () => {
   console.log('  DEALINGS PUBLISHING — EMAIL DIAGNOSTIC')
   line('═')
 
-  console.log('\nConfiguration read from server/.env:\n')
+  // Say which file these values came from. A project usually has more than one
+  // .env — a development machine and a server — and the fastest way to waste an
+  // afternoon is to fix the wrong one.
+  const envPath = path.resolve(process.cwd(), '.env')
+  console.log(`\nReading: ${envPath}${fs.existsSync(envPath) ? '' : '   <-- THIS FILE DOES NOT EXIST'}`)
+
+  console.log('\nConfiguration:\n')
   label('Host', config.host || '(empty)')
   label('Port', config.port)
   label('Encryption', config.secure ? 'Implicit TLS (correct for 465)' : 'STARTTLS (correct for 587/25)')
@@ -39,28 +48,34 @@ const run = async () => {
 
   if (config.missing.length > 0) {
     console.log(`\n  ✗ These values are empty: ${config.missing.join(', ')}`)
-    console.log('    Fill them in server/.env and run this again.\n')
+    console.log('    Fill them in and run this again.\n')
     process.exit(1)
   }
 
-  // Provider-specific sanity checks that catch the usual copy-paste mistakes
-  const warnings = []
-  if (config.host.includes('resend') && config.user !== 'resend') {
-    warnings.push(`Resend expects the username to be the literal word "resend", not "${config.user}".`)
-  }
-  if (config.host.includes('hostinger') && !config.user.includes('@')) {
-    warnings.push('Hostinger expects the full mailbox address as the username.')
-  }
-  if (config.host.includes('gmail') && !config.user.includes('@')) {
-    warnings.push('Gmail expects the full address as the username.')
-  }
-  if (config.host.includes('hostinger') && config.user && config.from && config.user !== config.from) {
-    warnings.push(`The username (${config.user}) and the From address (${config.from}) differ. Most mailbox providers require them to match.`)
+  // ── Problems visible without connecting to anything ──
+  const warnings = getConfigWarnings()
+  const blocking = warnings.filter((w) => w.severity === 'error')
+
+  for (const warning of warnings) {
+    const mark = warning.severity === 'error' ? '✗' : warning.severity === 'warning' ? '!' : 'i'
+    console.log(`\n  ${mark} ${warning.title}`)
+    console.log(`    ${warning.detail}`)
+
+    for (const fix of warning.fixes || []) {
+      console.log(`\n    → ${fix.label}:\n`)
+      fix.lines.forEach((l) => console.log(`        ${l}`))
+      if (fix.note) console.log(`\n      ${fix.note}`)
+    }
   }
 
-  if (warnings.length > 0) {
-    console.log('\n  Warnings:')
-    warnings.forEach((w) => console.log(`  ! ${w}`))
+  if (blocking.length > 0) {
+    console.log('\n')
+    line()
+    console.log('  Stopping here — this configuration cannot authenticate.')
+    console.log('  Apply one of the fixes above, restart the server, then run this again.')
+    line()
+    console.log('')
+    process.exit(1)
   }
 
   console.log('\n')

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import ExpandableText from '@/components/ui/ExpandableText'
 import SubscribeSection from '@/components/sections/SubscribeSection'
 import { siteAPI } from '@/services/api'
 
@@ -227,14 +228,21 @@ export default function AboutPage() {
           >
             {settings.heroTitle || 'Our Story'}
           </motion.h1>
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-6 text-lg text-neutral-400 max-w-2xl mx-auto"
+            className="mt-6 max-w-2xl mx-auto"
           >
-            {settings.heroSubtitle}
-          </motion.p>
+            <ExpandableText
+              lines={3}
+              align="center"
+              fadeFrom="from-neutral-900"
+              contentClassName="text-lg text-neutral-400"
+            >
+              {settings.heroSubtitle}
+            </ExpandableText>
+          </motion.div>
         </div>
       </section>
 
@@ -308,7 +316,13 @@ export default function AboutPage() {
                   <br />
                   Global Impact
                 </h2>
-                <div className="mt-6 space-y-4 text-neutral-600 leading-relaxed">
+                <ExpandableText
+                  className="mt-6"
+                  collapsedHeight={220}
+                  fadeFrom="from-neutral-50"
+                  moreLabel="Read our full story"
+                  contentClassName="space-y-4 text-neutral-600 leading-relaxed"
+                >
                   {storyParagraphs.length > 0 ? (
                     storyParagraphs.map((paragraph, index) => (
                       <p key={index}>{paragraph}</p>
@@ -326,7 +340,7 @@ export default function AboutPage() {
                       </p>
                     </>
                   )}
-                </div>
+                </ExpandableText>
               </div>
             </AnimatedSection>
 
@@ -430,9 +444,15 @@ export default function AboutPage() {
                         {member.email}
                       </a>
 
-                      <p className="mt-6 text-neutral-600 leading-relaxed">
+                      <ExpandableText
+                        className="mt-6"
+                        lines={4}
+                        moreLabel="More"
+                        lessLabel="Less"
+                        contentClassName="text-neutral-600 leading-relaxed"
+                      >
                         {member.description}
-                      </p>
+                      </ExpandableText>
                     </div>
                   </div>
                 </div>

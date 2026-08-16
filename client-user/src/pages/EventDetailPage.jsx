@@ -21,6 +21,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EventCard from '@/components/ui/EventCard'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatDate, formatIDR, formatUSD } from '@/lib/utils'
 import { eventAPI, registrationAPI } from '../services/api'
 import { useParticipantAuth } from '@/hooks/useParticipantAuth'
@@ -363,15 +364,21 @@ export default function EventDetailPage() {
                 </div>
 
                 {event.description && (
-                  <p className="text-neutral-600 leading-relaxed text-lg border-l-2 border-primary-200 pl-5 mb-8">
+                  <ExpandableText
+                    className="mb-8"
+                    lines={5}
+                    contentClassName="text-neutral-600 leading-relaxed text-lg border-l-2 border-primary-200 pl-5"
+                  >
                     {event.description}
-                  </p>
+                  </ExpandableText>
                 )}
 
                 {event.content ? (
-                  <div
-                    className="rich-content"
-                    dangerouslySetInnerHTML={{ __html: event.content }}
+                  <ExpandableText
+                    collapsedHeight={480}
+                    html={event.content}
+                    contentClassName="rich-content"
+                    moreLabel="Read the full description"
                   />
                 ) : (
                   <div className="rich-content">

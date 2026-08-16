@@ -41,7 +41,7 @@ export default function TermsPage() {
             </div>
           </div>
 
-          <div className="prose prose-neutral prose-lg max-w-none">
+          <div className="rich-content">
             <p className="text-sm text-neutral-500">
               Last updated: {new Date().getFullYear()}
             </p>

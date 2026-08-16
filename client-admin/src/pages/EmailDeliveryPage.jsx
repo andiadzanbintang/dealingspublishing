@@ -73,6 +73,7 @@ export default function EmailDeliveryPage() {
 
   const config = health?.config
   const verification = health?.verification
+  const warnings = health?.warnings || []
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -156,6 +157,71 @@ export default function EmailDeliveryPage() {
                 </div>
               </div>
             </div>
+
+            {/* ═══ Configuration problems visible without connecting ═══ */}
+            {warnings.map((warning, index) => (
+              <div
+                key={index}
+                className={`rounded-xl border p-5 ${
+                  warning.severity === 'error'
+                    ? 'bg-danger-50 border-danger-200'
+                    : warning.severity === 'warning'
+                      ? 'bg-warning-50 border-warning-200'
+                      : 'bg-neutral-50 border-neutral-200'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {warning.severity === 'error' ? (
+                    <XCircle className="w-5 h-5 text-danger-600 flex-shrink-0 mt-0.5" />
+                  ) : warning.severity === 'warning' ? (
+                    <AlertCircle className="w-5 h-5 text-warning-600 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <Info className="w-5 h-5 text-neutral-400 flex-shrink-0 mt-0.5" />
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`text-sm font-semibold ${
+                        warning.severity === 'error'
+                          ? 'text-danger-800'
+                          : warning.severity === 'warning'
+                            ? 'text-warning-800'
+                            : 'text-neutral-800'
+                      }`}
+                    >
+                      {warning.title}
+                    </p>
+                    <p className="mt-1 text-sm text-neutral-600 leading-relaxed">
+                      {warning.detail}
+                    </p>
+
+                    {/* Both honest ways out, ready to paste into .env */}
+                    {warning.fixes?.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        {warning.fixes.map((fix, fixIndex) => (
+                          <div
+                            key={fixIndex}
+                            className="rounded-lg bg-white border border-neutral-200 overflow-hidden"
+                          >
+                            <p className="px-4 py-2 text-xs font-medium text-neutral-700 bg-neutral-50 border-b border-neutral-200">
+                              Option {fixIndex + 1} — {fix.label}
+                            </p>
+                            <pre className="px-4 py-3 text-xs font-mono text-neutral-800 overflow-x-auto whitespace-pre">
+{fix.lines.join('\n')}
+                            </pre>
+                            {fix.note && (
+                              <p className="px-4 pb-3 text-xs text-neutral-500 leading-relaxed">
+                                {fix.note}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
 
             {/* ═══ Current configuration ═══ */}
             <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">

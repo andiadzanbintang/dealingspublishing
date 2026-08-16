@@ -1,6 +1,7 @@
 // src/controllers/email.controller.js
 import {
   getEmailConfig,
+  getConfigWarnings,
   verifyTransport,
   sendTestEmail,
   getRecentEmailAttempts,
@@ -72,6 +73,7 @@ export const getEmailHealth = catchAsync(async (req, res) => {
         missing: config.missing,
         debug: config.debug,
       },
+      warnings: getConfigWarnings(),
       verification,
       recentAttempts: getRecentEmailAttempts(),
       presets: PROVIDER_PRESETS,

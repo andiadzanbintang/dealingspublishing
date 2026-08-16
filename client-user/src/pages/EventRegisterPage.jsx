@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { useParticipantAuth } from '@/hooks/useParticipantAuth'
 import { registrationAPI } from '@/services/api'
 import { cn, formatDate, formatIDR, formatUSD, formatFileSize } from '@/lib/utils'
@@ -1011,9 +1012,13 @@ export default function EventRegisterPage() {
                           <p className="text-xs uppercase tracking-wider text-neutral-400 mb-1.5">
                             Abstract
                           </p>
-                          <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-line line-clamp-6">
+                          <ExpandableText
+                            lines={6}
+                            moreLabel="Show the whole abstract"
+                            contentClassName="text-sm text-neutral-700 leading-relaxed whitespace-pre-line"
+                          >
                             {form.abstract}
-                          </p>
+                          </ExpandableText>
                         </div>
                       </ReviewBlock>
                     )}

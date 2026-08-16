@@ -24,6 +24,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { registrationAPI } from '@/services/api'
 import {
   cn,
@@ -1046,9 +1047,12 @@ function SubmissionSummary({ registration }) {
       {manuscript.abstract && (
         <div className="mt-5 pt-5 border-t border-neutral-100">
           <p className="text-xs uppercase tracking-wider text-neutral-400 mb-2">Abstract</p>
-          <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-line">
+          <ExpandableText
+            lines={8}
+            contentClassName="text-sm text-neutral-700 leading-relaxed whitespace-pre-line"
+          >
             {manuscript.abstract}
-          </p>
+          </ExpandableText>
         </div>
       )}
 

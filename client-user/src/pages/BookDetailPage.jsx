@@ -26,6 +26,7 @@ import { motion } from 'framer-motion'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button' 
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatDate, formatBookPrice } from '@/lib/utils'
 import { bookAPI } from '@/services/api'
 
@@ -363,9 +364,12 @@ export default function BookDetailPage() {
                     <h2 className="text-2xl font-bold text-neutral-900 mb-4">
                       Description
                     </h2>
-                    <p className="text-neutral-600 leading-relaxed text-lg">
+                    <ExpandableText
+                      lines={6}
+                      contentClassName="text-neutral-600 leading-relaxed text-lg"
+                    >
                       {book.description}
-                    </p>
+                    </ExpandableText>
                   </div>
                 </AnimatedSection>
               )}
@@ -376,9 +380,11 @@ export default function BookDetailPage() {
                     <h2 className="text-2xl font-bold text-neutral-900 mb-4">
                       Additional Information
                     </h2>
-                    <div
-                      className="prose prose-neutral prose-lg max-w-none"
-                      dangerouslySetInnerHTML={{ __html: book.content }}
+                    <ExpandableText
+                      collapsedHeight={420}
+                      html={book.content}
+                      contentClassName="rich-content"
+                      moreLabel="Read more"
                     />
                   </div>
                 </AnimatedSection>

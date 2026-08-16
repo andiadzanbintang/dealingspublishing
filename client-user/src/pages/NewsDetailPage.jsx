@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import NewsCard from '@/components/ui/NewsCard'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatDate } from '@/lib/utils'
 import { mockNews } from '@/data/mockData'
 import { newsAPI } from '@/services/api'
@@ -289,22 +290,27 @@ export default function NewsDetailPage() {
 
           {/* Article Body */}
           <AnimatedSection delay={0.1}>
-            <div className="prose prose-neutral prose-lg max-w-none">
+            <div>
               {article.excerpt && (
-                <p className="text-xl text-neutral-600 leading-relaxed font-medium">
+                <p className="text-xl text-neutral-600 leading-relaxed font-medium border-l-2 border-primary-200 pl-5 mb-8">
                   {article.excerpt}
                 </p>
               )}
 
               {article.content ? (
-                <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                <ExpandableText
+                  collapsedHeight={560}
+                  html={article.content}
+                  contentClassName="rich-content"
+                  moreLabel="Continue reading"
+                />
               ) : (
-                <>
+                <div className="rich-content">
                   <p>
                     Full article content is not available yet. Please check back
                     later for more details.
                   </p>
-                </>
+                </div>
               )}
             </div>
           </AnimatedSection>

@@ -87,6 +87,144 @@ const buildTransporter = () => {
 }
 
 /**
+ * Provider fingerprints. `EMAIL_HOST` decides which service you are talking to,
+ * and each one has its own rule for what `EMAIL_USER` must be. Mixing them —
+ * a Resend host with a mailbox address as the username, say — fails with a
+ * terse "535 Invalid username" that does not say which half is wrong.
+ */
+const PROVIDER_RULES = [
+  {
+    match: /resend/i,
+    name: 'Resend',
+    expects: 'the literal word "resend"',
+    isValidUser: (user) => user === 'resend',
+    passHint: 'an API key beginning with re_',
+    isValidPass: (pass) => pass.startsWith('re_'),
+  },
+  {
+    match: /hostinger/i,
+    name: 'Hostinger',
+    expects: 'the full mailbox address',
+    isValidUser: (user) => user.includes('@'),
+    passHint: 'the mailbox password from hPanel',
+    isValidPass: () => true,
+  },
+  {
+    match: /gmail|google/i,
+    name: 'Gmail / Google Workspace',
+    expects: 'the full Gmail address',
+    isValidUser: (user) => user.includes('@'),
+    passHint: 'a 16-character App Password (not the account password)',
+    isValidPass: () => true,
+  },
+  {
+    match: /brevo|sendinblue/i,
+    name: 'Brevo',
+    expects: 'the login shown on the Brevo SMTP page',
+    isValidUser: (user) => user.length > 0,
+    passHint: 'an SMTP key generated in Brevo',
+    isValidPass: () => true,
+  },
+]
+
+/**
+ * Problems that can be spotted from the configuration alone, before any
+ * connection is attempted. Each one carries the fix, not just the complaint.
+ */
+export const getConfigWarnings = () => {
+  const config = getEmailConfig()
+  const password = clean(process.env.EMAIL_PASS)
+  const warnings = []
+
+  const provider = PROVIDER_RULES.find((rule) => rule.match.test(config.host))
+
+  if (provider && config.user && !provider.isValidUser(config.user)) {
+    warnings.push({
+      severity: 'error',
+      title: `EMAIL_HOST points at ${provider.name}, but EMAIL_USER is not what ${provider.name} expects`,
+      detail: `${provider.name} expects the username to be ${provider.expects}. Yours is "${config.user}". This combination cannot authenticate — it is the usual cause of "535 Invalid username".`,
+      fixes: buildMismatchFixes(config, provider, password),
+    })
+  }
+
+  if (provider && password && !provider.isValidPass(password)) {
+    warnings.push({
+      severity: 'warning',
+      title: `EMAIL_PASS does not look like a ${provider.name} credential`,
+      detail: `${provider.name} expects ${provider.passHint}.`,
+    })
+  }
+
+  // A mailbox provider will normally only let you send as the mailbox you
+  // authenticated with. A relay (Resend, Brevo) will not.
+  const mailboxProvider = provider && /hostinger|gmail|google/i.test(config.host)
+  if (mailboxProvider && config.user && config.from && config.user !== config.from) {
+    warnings.push({
+      severity: 'warning',
+      title: 'The authenticated mailbox and the From address differ',
+      detail: `You authenticate as "${config.user}" but send as "${config.from}". Most mailbox providers reject that, or silently rewrite the sender.`,
+    })
+  }
+
+  if (!provider && config.host) {
+    warnings.push({
+      severity: 'info',
+      title: `Unrecognised SMTP host "${config.host}"`,
+      detail: 'No provider-specific checks available. Confirm the username and password format with your provider.',
+    })
+  }
+
+  return warnings
+}
+
+/**
+ * When the host and the username disagree, there are always exactly two honest
+ * ways out: correct the username for the host you configured, or change the
+ * host to match the username you already have. Spell out both.
+ */
+const buildMismatchFixes = (config, provider, password) => {
+  const fixes = []
+
+  if (provider.name === 'Resend') {
+    fixes.push({
+      label: 'Keep Resend — correct the username',
+      lines: [
+        'EMAIL_HOST=smtp.resend.com',
+        'EMAIL_PORT=465',
+        'EMAIL_USER=resend',
+        `EMAIL_PASS=${password.startsWith('re_') ? '<keep your existing re_ API key>' : '<an API key from the Resend dashboard, starts with re_>'}`,
+        `EMAIL_FROM=${config.from || 'you@yourdomain.com'}`,
+      ],
+      note: `Resend must also show the domain of ${config.from || 'your From address'} as Verified. Until it does, it only accepts mail addressed to your own Resend account address.`,
+    })
+
+    if (config.user.includes('@')) {
+      const domain = config.user.split('@')[1] || ''
+      const looksHostinger = /dealingspublishing/i.test(domain)
+
+      fixes.push({
+        label: `Send through the mailbox that already owns ${config.user}`,
+        lines: [
+          looksHostinger ? 'EMAIL_HOST=smtp.hostinger.com' : 'EMAIL_HOST=<your mail provider SMTP host>',
+          'EMAIL_PORT=465',
+          `EMAIL_USER=${config.user}`,
+          'EMAIL_PASS=<the mailbox password, not an API key>',
+          `EMAIL_FROM=${config.user}`,
+        ],
+        note: 'No domain verification step, and no restriction on who you may write to, because the account already owns the address.',
+      })
+    }
+  } else {
+    fixes.push({
+      label: `Use a username ${provider.name} accepts`,
+      lines: [`EMAIL_USER=${provider.expects}`],
+    })
+  }
+
+  return fixes
+}
+
+/**
  * Turns an SMTP failure into something a human can act on. The raw errors are
  * terse ("EAUTH", "550") and the fix differs per provider, so the guidance is
  * spelled out here rather than left for someone to search for.
@@ -102,8 +240,13 @@ export const describeEmailError = (error) => {
   if (config.missing.length > 0) {
     hint = `These .env values are empty: ${config.missing.join(', ')}.`
   } else if (code === 'EAUTH' || responseCode === 535) {
-    hint =
-      'The mail server rejected the username or password. For Resend the username must be the literal word "resend" and the password must be an API key starting with re_. For Hostinger or Gmail the username is the full mailbox address; Gmail additionally requires an App Password, not the account password.'
+    // If the configuration itself is inconsistent, say exactly that rather than
+    // listing every provider's rule and leaving the reader to work it out.
+    const configError = getConfigWarnings().find((w) => w.severity === 'error')
+
+    hint = configError
+      ? `${configError.title}. ${configError.detail}`
+      : 'The mail server rejected the username or password. For Resend the username must be the literal word "resend" and the password must be an API key starting with re_. For Hostinger or Gmail the username is the full mailbox address; Gmail additionally requires an App Password, not the account password.'
   } else if (code === 'ECONNECTION' || code === 'ESOCKET' || code === 'ETIMEDOUT') {
     hint = `Could not open an SMTP connection to ${config.host}:${config.port}. Either the host or port is wrong, or outbound SMTP is blocked on this network. Port 465 needs secure=true, port 587 needs STARTTLS — this service picks that automatically from the port number.`
   } else if (code === 'EENVELOPE' || responseCode === 403) {

@@ -27,6 +27,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import JournalCard from '@/components/ui/JournalCard'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatDate } from '@/lib/utils'
 import { mockJournals } from '@/data/mockData'
 import { journalAPI } from '@/services/api'
@@ -414,9 +415,12 @@ export default function JournalDetailPage() {
                     <h2 className="text-2xl font-bold text-neutral-900 mb-4">
                       About the Journal
                     </h2>
-                    <p className="text-neutral-600 leading-relaxed text-lg">
+                    <ExpandableText
+                      lines={6}
+                      contentClassName="text-neutral-600 leading-relaxed text-lg"
+                    >
                       {journal.abstract}
-                    </p>
+                    </ExpandableText>
                   </div>
                 </AnimatedSection>
               )}
@@ -428,9 +432,11 @@ export default function JournalDetailPage() {
                   </h2>
 
                   {journal.content ? (
-                    <div
-                      className="prose prose-neutral prose-lg max-w-none"
-                      dangerouslySetInnerHTML={{ __html: journal.content }}
+                    <ExpandableText
+                      collapsedHeight={420}
+                      html={journal.content}
+                      contentClassName="rich-content"
+                      moreLabel="Read the full description"
                     />
                   ) : (
                     <p className="text-neutral-600 leading-relaxed">

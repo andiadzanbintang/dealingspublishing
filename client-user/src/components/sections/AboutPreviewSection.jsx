@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Target, Microscope, Globe } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { siteAPI } from '@/services/api'
 
 const defaultSettings = {
@@ -100,9 +101,13 @@ export default function AboutPreviewSection() {
                 <br />
                 Scientific Knowledge
               </h2>
-              <p className="mt-6 text-lg text-neutral-500 leading-relaxed">
+              <ExpandableText
+                className="mt-6"
+                lines={5}
+                contentClassName="text-lg text-neutral-500 leading-relaxed"
+              >
                 {settings.aboutUsShort}
-              </p>
+              </ExpandableText>
 
               {/* Highlights */}
               <div className="mt-10 space-y-6">
