@@ -133,6 +133,14 @@ const teamMembers = [
   image: '/bintang.jpeg',
   description:
     'Turns ideas into working technology. Designs and develops web platforms, automation systems, databases, and digital infrastructure while leveraging expertise in software engineering, data analytics, and cybersecurity to solve complex challenges and drive innovation.',
+},
+{
+  name: 'Alex, S.Pd, M.Pd',
+  role: 'Marketing and Business Development Department',
+  email: 'alexfkip@ulm.ac.id',
+  image: '/Alex.jpeg',
+  description:
+    'The Marketing & Business Development Department is responsible for developing and implementing integrated marketing, business development, partnership, and market expansion strategies for Dealings Publishing. The department aims to strengthen the Dealings Publishing brand, expand its network of authors, editors, researchers, universities, institutions, and professional organizations, and increase the visibility, reach, and commercial sustainability of the company’s publishing products and services.',
 }
 ]
 
